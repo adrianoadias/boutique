@@ -1,0 +1,6 @@
+{
+  "name": "Boutique das Carnes - Placar Premiado",
+  "description": "Deixe seu palpite do jogo Brasil x Haiti, gire a roleta premiada e garanta descontos e presentes especiais na Boutique das Carnes!",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
