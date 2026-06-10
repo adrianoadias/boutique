@@ -52,7 +52,10 @@ export default function FinalResult({ matchConfig, user, guess, prize, onReset }
   };
 
   const handleSendWhatsapp = () => {
-    const url = `https://api.whatsapp.com/send?text=${formatWhatsappMessage()}`;
+    // Read dynamic store phone configured in Admin panel, or fallback to default
+    const rawPhone = localStorage.getItem('boutique_store_phone_number') || '5547991238671';
+    const cleanStorePhone = rawPhone.replace(/\D/g, '');
+    const url = `https://api.whatsapp.com/send?phone=${cleanStorePhone}&text=${formatWhatsappMessage()}`;
     window.open(url, '_blank', 'noreferrer,noopener');
   };
 
@@ -217,21 +220,25 @@ export default function FinalResult({ matchConfig, user, guess, prize, onReset }
             type="button"
             id="btn-send-whatsapp"
             onClick={handleSendWhatsapp}
-            className="w-full bg-[#25D366] hover:brightness-110 active:scale-[0.98] py-4 rounded-2xl font-black font-display text-white tracking-wide flex items-center justify-center gap-2 text-base shadow-lg cursor-pointer border-b-4 border-emerald-800 relative overflow-hidden uppercase"
+            className="w-full bg-[#25D366] hover:bg-[#20ba5a] active:scale-[0.98] py-4 rounded-2xl font-black font-display text-white tracking-wide flex items-center justify-center gap-2 text-base shadow-xl cursor-pointer border-b-4 border-emerald-800 relative overflow-hidden uppercase animate-pulse"
           >
             {/* Shine highlight */}
             <span className="absolute inset-x-0 top-0 h-1/2 bg-white/10" />
             
             <Share2 className="w-5 h-5 stroke-[2.5]" />
-            ENVIAR PALPITE PELO WHATSAPP
+            ENVIAR COMPROVANTE NO WHATS DA BOUTIQUE
           </button>
+
+          <p className="text-[10px] text-stone-550 font-bold text-center leading-relaxed max-w-sm mx-auto bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+            🟢 <strong>SUPER GARANTIA ANTI-PERDA:</strong> Caso queira ter 100% de certeza, clique no botão acima para enviar seus dados, palpite e prêmio sorteado diretamente para o WhatsApp de atendimento da <strong>Boutique das Carnes</strong>. Seus dados estão salvos no servidor principal do sistema, mas o envio no WhatsApp nos ajuda a agilizar a sua entrega hoje mesmo!
+          </p>
 
           {/* Reset / Repalpit button */}
           <button
             type="button"
             id="btn-play-again"
             onClick={onReset}
-            className="w-full bg-white hover:bg-stone-50 active:scale-[0.98] py-3.5 rounded-2xl font-bold font-display text-brazil-blue tracking-wide flex items-center justify-center gap-2 text-xs transition cursor-pointer border-2 border-stone-200"
+            className="w-full bg-white hover:bg-stone-50 active:scale-[0.98] py-3.5 rounded-2xl font-bold font-display text-brazil-blue tracking-wide flex items-center justify-center gap-2 text-xs transition cursor-pointer border-2 border-stone-200 mt-1"
           >
             <RefreshCw className="w-4 h-4" />
             REFAZER MEU PALPITE / NOVO CADASTRO

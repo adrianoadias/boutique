@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Lock, 
   User, 
@@ -19,7 +19,9 @@ import {
   Settings,
   Database,
   History,
-  Archive
+  Archive,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Prize, MatchConfig } from '../types';
 import { getLoadedMatches, CONFIRMED_MATCHES } from '../data';
@@ -94,6 +96,11 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showClearPassword, setShowClearPassword] = useState(false);
+  const [storePhone, setStorePhone] = useState(() => {
+    return localStorage.getItem('boutique_store_phone_number') || '5547991238671';
+  });
   const [loginError, setLoginError] = useState('');
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -144,6 +151,46 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [matches, setMatches] = useState<MatchConfig[]>(() => getLoadedMatches());
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
 
+  // Sync with full-stack server state when logged in
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    // Load active records from backend
+    fetch('/api/registrations')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success && Array.isArray(data.records)) {
+          localStorage.setItem('boutique_all_registrations', JSON.stringify(data.records));
+          setRecords(data.records);
+        }
+      })
+      .catch(err => console.error('Error fetching registrations from server:', err));
+
+    // Also fetch archived backups from backend
+    fetch('/api/backups')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success && Array.isArray(data.backups)) {
+          try {
+            const saved = localStorage.getItem('boutique_finalized_backups');
+            const localBackups = saved ? JSON.parse(saved) : [];
+            
+            // Deduplicate lists by id
+            const backupMap = new Map<string, any>();
+            localBackups.forEach((b: any) => backupMap.set(b.id, b));
+            data.backups.forEach((b: any) => backupMap.set(b.id, b));
+            
+            const merged = Array.from(backupMap.values());
+            localStorage.setItem('boutique_finalized_backups', JSON.stringify(merged));
+            setBackups(merged);
+          } catch {
+            setBackups(data.backups);
+          }
+        }
+      })
+      .catch(err => console.error('Error loading backups from server:', err));
+  }, [isLoggedIn]);
+
   const handleUpdateRealScore = (matchId: string, team: 'team1' | 'team2', valStr: string) => {
     const trimmed = valStr.trim();
     const parsed = trimmed === '' ? null : parseInt(trimmed, 10);
@@ -165,6 +212,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const handleSaveMatchesConfig = () => {
     try {
       localStorage.setItem('boutique_matches_config', JSON.stringify(matches));
+      localStorage.setItem('boutique_store_phone_number', storePhone.replace(/\D/g, ''));
       setIsSavedSuccess(true);
       setTimeout(() => setIsSavedSuccess(false), 3000);
     } catch (e) {
@@ -221,16 +269,33 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     }
 
     const currentRecords = loadRecords();
+    const backupTitle = (clearBackupName || `Bolão Finalizado em ${new Date().toLocaleString('pt-BR')}`).trim();
     
     // Automatically save a backup of current records if records exist
     const newBackup: CompletedBackup = {
       id: 'backup_' + Date.now(),
-      name: (clearBackupName || `Bolão Finalizado em ${new Date().toLocaleString('pt-BR')}`).trim(),
+      name: backupTitle,
       timestamp: new Date().toLocaleString('pt-BR'),
       records: currentRecords
     };
 
     const updatedBackups = [newBackup, ...backups];
+
+    // Trigger clear database and backup on server-side
+    fetch('/api/clear-db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: clearPassword, name: backupTitle })
+    })
+    .then(res => res.json())
+    .then(serverResult => {
+      if (serverResult.success) {
+        console.log('Server-side database cleared and archived successfully.');
+      } else {
+        console.warn('Server-side clear-db response error:', serverResult.error);
+      }
+    })
+    .catch(err => console.error('Error contacting server to clear db:', err));
 
     try {
       localStorage.setItem('boutique_finalized_backups', JSON.stringify(updatedBackups));
@@ -243,7 +308,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       setClearBackupName('');
       setClearError('');
       
-      alert('Tudo limpo! Sua lista ativa de palpites foi redefinida com sucesso. O backup correspondente está salvo na aba "Backups" para download ou restauração futura.');
+      alert('Tudo limpo! Sua lista ativa de palpites foi redefinida com sucesso. O backup correspondente está salvo na aba "Backups" (tanto em seu dispositivo quanto no banco do servidor) para download ou restauração futura.');
       setActiveTab('BACKUPS');
     } catch (err) {
       setClearError('Ocorreu um erro ao gravar o arquivo de backup no armazenamento LocalStorage.');
@@ -268,8 +333,23 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     if (confirmRestore) {
       localStorage.setItem('boutique_all_registrations', JSON.stringify(backup.records));
       setRecords(backup.records);
-      alert('Backup restaurado com sucesso! Seus palpites e registros correspondentes agora foram reativados.');
-      setActiveTab('PALPITES');
+
+      // Sincronizar de volta com o banco de dados principal do servidor
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(backup.records)
+      })
+      .then(res => res.json())
+      .then(res => {
+        alert('Backup restaurado com sucesso! Seus palpites e registros correspondentes agora foram reativados tanto no navegador quanto no banco do servidor.');
+        setActiveTab('PALPITES');
+      })
+      .catch(err => {
+        console.error('Error synchronising backup restoration with server:', err);
+        alert('Backup restaurado localmente com sucesso! Houve uma oscilação na sincronia com o servidor, mas os dados estão carregados na sua tela.');
+        setActiveTab('PALPITES');
+      });
     }
   };
 
@@ -433,13 +513,20 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               <div className="relative">
                 <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   placeholder="••••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 focus:border-brazil-blue rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-brazil-blue outline-none"
+                  className="w-full bg-stone-50 border border-stone-200 focus:border-brazil-blue rounded-xl py-2.5 pl-10 pr-12 text-xs font-bold text-brazil-blue outline-none"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-brazil-blue p-2.5"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -942,6 +1029,25 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                     </div>
                   ))}
 
+                  {/* Boutique WhatsApp customizer */}
+                  <div className="bg-white p-3.5 rounded-2xl border-2 border-dashed border-emerald-500/30 flex flex-col gap-2.5 shadow-sm text-left">
+                    <span className="text-xs font-black uppercase text-emerald-700 flex items-center gap-1 font-display">
+                      🟢 WHATSAPP DE RETORNO DA BOUTIQUE
+                    </span>
+                    <p className="text-[10px] text-stone-500 font-bold leading-normal">
+                      Insira o número de WhatsApp completo com DDD da sua Boutique (APENAS NÚMEROS, incluindo o DDI 55 do Brasil). Os clientes usarão esse número para enviar seus comprovantes em um clique!
+                    </p>
+                    <div className="flex flex-col gap-1">
+                      <input
+                        type="text"
+                        placeholder="Ex: 5547991238671"
+                        value={storePhone}
+                        onChange={(e) => setStorePhone(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 focus:border-emerald-500 rounded p-1.5 text-xs font-bold font-mono text-brazil-blue outline-none"
+                      />
+                    </div>
+                  </div>
+
                   {isSavedSuccess && (
                      <div className="p-3 bg-emerald-50 border border-emerald-250 text-emerald-600 text-xs text-center font-bold rounded-2xl flex items-center justify-center gap-1.5 shadow-sm">
                        <CheckCircle className="w-4 h-4 text-emerald-500" />
@@ -1106,13 +1212,20 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 <div className="relative">
                   <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400 animate-pulse" />
                   <input
-                    type="password"
+                    type={showClearPassword ? "text" : "password"}
                     required
                     placeholder="Sua senha secreta de admin"
                     value={clearPassword}
                     onChange={(e) => setClearPassword(e.target.value)}
-                    className="w-full bg-stone-100 border border-stone-300 focus:border-red-500 rounded-xl py-2 pl-9 pr-3 text-xs font-bold outline-none text-brazil-blue"
+                    className="w-full bg-stone-100 border border-stone-300 focus:border-red-500 rounded-xl py-2 pl-9 pr-12 text-xs font-bold outline-none text-brazil-blue"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowClearPassword(!showClearPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-red-500 p-1"
+                  >
+                    {showClearPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                  </button>
                 </div>
               </div>
 

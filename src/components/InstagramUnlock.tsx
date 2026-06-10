@@ -44,17 +44,20 @@ export default function InstagramUnlock({ onUnlock, userName }: InstagramUnlockP
 
       <div className="flex flex-col gap-5 flex-1 items-center justify-center">
         
-        {/* Welcome Message */}
-        <div className="text-center">
-          <span className="text-xs text-bbq-red uppercase font-mono font-black tracking-wider">
-            Olá, {userName}! 👋
+        {/* Confirmed Thank You Message */}
+        <div className="text-center bg-emerald-50/80 border-2 border-emerald-500/20 rounded-3xl p-5 mb-1 max-w-sm w-full mx-auto shadow-sm text-brazil-blue">
+          <span className="text-[10px] text-emerald-800 bg-emerald-100/90 py-1 px-3.5 rounded-full uppercase font-mono font-black tracking-widest animate-pulse inline-block">
+            🎉 PALPITE SALVO COM SUCESSO! 🎉
           </span>
-          <h2 className="text-xl font-black uppercase font-display tracking-tight leading-none text-brazil-blue mt-1">
-            Siga-nos para Liberar a Roleta
+          <h2 className="text-lg font-black uppercase font-display tracking-tight leading-tight text-brazil-blue mt-3">
+            MUITO OBRIGADO PELO CADASTRO!
           </h2>
-          <p className="text-xs text-stone-600 font-semibold mt-1 max-w-xs mx-auto">
-            A roleta premiadora contém prêmios gourmet exclusivos. Siga o perfil da nossa boutique para validar sua participação!
+          <p className="text-xs text-stone-600 font-semibold mt-2 leading-relaxed">
+            Olá, <strong className="text-emerald-700 font-extrabold">{userName}</strong>! Seus palpites para os jogos da Copa já foram guardados com segurança no nosso sistema. 🥩🇧🇷
           </p>
+          <div className="mt-3.5 pt-3 border-t border-emerald-550/15 text-xs text-stone-600 font-bold">
+            🎁 E agora vem a melhor parte: você acaba de liberar <strong className="text-bbq-red font-black uppercase">1 Giro Grátis</strong> na nossa <strong className="text-brazil-blue font-black uppercase">Roleta de Prêmios Instantâneos</strong> para ganhar presentes gourmet exclusivos da Boutique hoje mesmo!
+          </div>
         </div>
 
         {/* Mock Instagram Feed Card with white deck template styling */}
@@ -158,15 +161,15 @@ export default function InstagramUnlock({ onUnlock, userName }: InstagramUnlockP
             type="button"
             id="btn-instagram-unlock"
             onClick={onUnlock}
-            className="w-full bg-bbq-red hover:brightness-110 active:scale-[0.98] py-4 rounded-2xl font-black tracking-wide text-white font-display flex items-center justify-center gap-2 text-sm shadow-xl cursor-pointer border-b-4 border-red-950 uppercase"
+            className="w-full bg-bbq-red hover:bg-bbq-red/90 hover:scale-102 active:scale-95 py-4 rounded-2xl font-black tracking-wide text-white font-display flex items-center justify-center gap-2 text-sm shadow-xl cursor-pointer border-b-4 border-red-950 uppercase animate-pulse"
           >
-            LIBERAR MINHA ROLETA AGORA
+            GIRAR A ROLETA AGORA 🎰
             <ArrowRight className="w-5 h-5 stroke-[3]" />
           </button>
         </div>
 
         <div className="mt-2 px-4 py-2.5 bg-white border-2 border-brazil-blue/15 rounded-2xl text-[10px] text-stone-500 font-bold text-center max-w-xs leading-relaxed">
-          🎁 Siga nosso perfil para ficar por dentro de tudo na Boutique, ou clique no botão acima para girar a roleta!
+          🎁 Siga nosso perfil para prestigiar a melhor boutique e ganhar prêmios extras toda semana!
         </div>
       </div>
     </div>

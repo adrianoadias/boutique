@@ -77,11 +77,42 @@ export default function App() {
     localStorage.setItem(LOCAL_STORAGE_STEP_KEY, step);
   }, [step]);
 
+  // Synchronize local registration history with server side on mount
+  useEffect(() => {
+    try {
+      const existing = localStorage.getItem('boutique_all_registrations');
+      const clientRecords = existing ? JSON.parse(existing) : [];
+      
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(clientRecords)
+      })
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Sync failed with status ' + res.status);
+      })
+      .then(data => {
+        if (data && data.success && Array.isArray(data.records)) {
+          localStorage.setItem('boutique_all_registrations', JSON.stringify(data.records));
+          // Refresh the storage event if administrative screens are looking
+          window.dispatchEvent(new Event('storage'));
+        }
+      })
+      .catch(e => console.error('Silent mount database sync error:', e));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   const handleFormComplete = (newUser: UserRegistration, newGuess: MatchGuess) => {
     setUser(newUser);
     setGuess(newGuess);
     localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(newUser));
     localStorage.setItem(LOCAL_STORAGE_GUESS_KEY, JSON.stringify(newGuess));
+
+    let registrationId = '';
+    let targetRecord: any = null;
 
     // Save to database immediately so they are counted, even if they quit before spinning!
     try {
@@ -107,10 +138,12 @@ export default function App() {
         records[existingIndex].haitiScore = newGuess.haitiScore;
         records[existingIndex].predictions = newGuess.predictions || [];
         records[existingIndex].firstGoalScorer = newGuess.firstGoalScorer || '';
+        registrationId = records[existingIndex].id;
+        targetRecord = records[existingIndex];
         // Capture their ID back to sync of roulette flow
         localStorage.setItem('boutique_current_registration_id', records[existingIndex].id);
       } else {
-        const registrationId = Math.random().toString(36).substring(2, 9).toUpperCase();
+        registrationId = Math.random().toString(36).substring(2, 9).toUpperCase();
         localStorage.setItem('boutique_current_registration_id', registrationId);
 
         const newRecord = {
@@ -127,8 +160,25 @@ export default function App() {
           timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
         };
         records.unshift(newRecord);
+        targetRecord = newRecord;
       }
       localStorage.setItem('boutique_all_registrations', JSON.stringify(records));
+      
+      // Dual-System instant server backup POST
+      if (targetRecord) {
+        fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(targetRecord)
+        })
+        .then(res => res.json())
+        .then(result => {
+          if (result && result.success && result.record) {
+            console.log('Server registration synced successfully');
+          }
+        })
+        .catch(err => console.error('Immediate database submission error:', err));
+      }
     } catch (e) {
       console.error('Error saving immediate registration', e);
     }
@@ -154,6 +204,8 @@ export default function App() {
       const cleanInputPhone = user.phone.replace(/\D/g, '');
 
       let recordIndex = -1;
+      let targetRecord: any = null;
+
       if (currentRegId) {
         recordIndex = records.findIndex((r: any) => r.id === currentRegId);
       }
@@ -168,6 +220,7 @@ export default function App() {
       if (recordIndex > -1) {
         records[recordIndex].prizeTitle = wonPrize.title;
         records[recordIndex].prizeCode = wonPrize.couponCode;
+        targetRecord = records[recordIndex];
       } else {
         // Fallback: create fresh record if not found
         const newRecord = {
@@ -184,9 +237,26 @@ export default function App() {
           timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
         };
         records.unshift(newRecord);
+        targetRecord = newRecord;
       }
       
       localStorage.setItem('boutique_all_registrations', JSON.stringify(records));
+
+      // Dual-System instant server backup update POST
+      if (targetRecord) {
+        fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(targetRecord)
+        })
+        .then(res => res.json())
+        .then(result => {
+          if (result && result.success) {
+            console.log('Server prize update synced successfully');
+          }
+        })
+        .catch(err => console.error('Server prize update sync error:', err));
+      }
     } catch (e) {
       console.error('Error updating registration with prize', e);
     }
