@@ -150,21 +150,35 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   // Dynamic Matches List State
   const [matches, setMatches] = useState<MatchConfig[]>(() => getLoadedMatches());
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState('');
 
-  // Sync with full-stack server state when logged in
-  useEffect(() => {
-    if (!isLoggedIn) return;
-
-    // Load active records from backend
+  // Dual function to load active records from server
+  const fetchRegistrations = (showLoading = false) => {
+    if (showLoading) setIsSyncing(true);
     fetch('/api/registrations')
       .then(res => res.json())
       .then(data => {
         if (data && data.success && Array.isArray(data.records)) {
           localStorage.setItem('boutique_all_registrations', JSON.stringify(data.records));
           setRecords(data.records);
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString('pt-BR');
+          setLastSyncTime(timeStr);
         }
       })
-      .catch(err => console.error('Error fetching registrations from server:', err));
+      .catch(err => console.error('Error fetching registrations from server:', err))
+      .finally(() => {
+        if (showLoading) setIsSyncing(false);
+      });
+  };
+
+  // Sync with full-stack server state when logged in and start real-time auto-polling!
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    // Load active records and backups initially
+    fetchRegistrations(true);
 
     // Also fetch archived backups from backend
     fetch('/api/backups')
@@ -189,6 +203,13 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         }
       })
       .catch(err => console.error('Error loading backups from server:', err));
+
+    // Real-time server sync polling every 6 seconds to capture other device submissions instantly!
+    const pollInterval = setInterval(() => {
+      fetchRegistrations(false);
+    }, 6000);
+
+    return () => clearInterval(pollInterval);
   }, [isLoggedIn]);
 
   const handleUpdateRealScore = (matchId: string, team: 'team1' | 'team2', valStr: string) => {
@@ -624,6 +645,25 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full bg-stone-50 border border-stone-200 focus:border-brazil-blue rounded-xl py-2 px-9 text-xs font-bold text-brazil-blue outline-none"
                     />
+                  </div>
+
+                  {/* Real-time sync visual band with active pulse */}
+                  <div className="flex items-center justify-between text-[10px] bg-stone-50/70 border border-stone-200/60 rounded-xl p-2 font-bold shrink-0">
+                    <div className="flex items-center gap-1.5 text-stone-500">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-550"></span>
+                      </span>
+                      <span>Sincronizado {lastSyncTime ? `às ${lastSyncTime}` : 'em Tempo Real'}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fetchRegistrations(true)}
+                      disabled={isSyncing}
+                      className="px-2.5 py-1 text-[9px] uppercase font-black tracking-wider text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:opacity-50 transition rounded-lg flex items-center gap-1 cursor-pointer shadow-sm select-none"
+                    >
+                      {isSyncing ? 'Sincronizando...' : '🔄 Atualizar Lista'}
+                    </button>
                   </div>
 
                   {/* Filter pills */}
