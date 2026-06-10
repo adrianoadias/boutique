@@ -20,7 +20,7 @@ export default function Header({ matchConfig }: HeaderProps) {
         <span className="absolute bottom-1 left-3/4 w-1.5 h-1.5 bg-white rounded-full animate-ember" style={{ animationDelay: '2.5s' }} />
       </div>
 
-      <div className="flex flex-col items-center text-center px-4 relative z-10">
+      <div className="max-w-4xl mx-auto w-full px-4 relative z-10 flex flex-col items-center text-center">
         {/* Brand visual (Churrasco + Cup) */}
         <div className="flex items-center gap-3 mb-2">
           <div className="flex flex-col items-start leading-none text-left">
@@ -45,8 +45,8 @@ export default function Header({ matchConfig }: HeaderProps) {
         <h1 className="mt-3 text-3xl font-black tracking-tighter leading-none uppercase italic font-display select-none">
           PLACAR <span className="text-brazil-yellow">PREMIADO</span>
         </h1>
-        <p className="mt-2 text-xs text-white/90 max-w-sm px-4 leading-relaxed font-bold">
-          Dê o seu palpite no jogo <span className="font-extrabold text-brazil-yellow">{matchConfig.team1Name} x {matchConfig.team2Name}</span>, siga no Instagram e gire para garantir prêmios deliciosos!
+        <p className="mt-2 text-xs text-white/90 max-w-sm px-4 leading-relaxed font-bold animate-fade-in">
+          Dê seu palpite nos <span className="font-extrabold text-brazil-yellow">jogos confirmados</span> do Brasil na Copa, siga no Instagram e gire para garantir prêmios deliciosos!
         </p>
       </div>
     </div>

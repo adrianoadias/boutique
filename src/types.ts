@@ -12,13 +12,24 @@ export interface MatchGuess {
   brazilScore: number;
   haitiScore: number;
   firstGoalScorer?: string;
+  predictions?: MatchPrediction[];
+}
+
+export interface MatchPrediction {
+  matchId: string;
+  team1Score: number;
+  team2Score: number;
+  firstGoalScorer?: string;
 }
 
 export interface MatchConfig {
+  id: string;
   team1Name: string;
   team1Flag: string;
   team2Name: string;
   team2Flag: string;
+  dateStr: string;
+  location: string;
 }
 
 export type PrizeId = '10_PERCENT' | '15_PERCENT' | 'FREE_BEER' | 'FREE_SHIPPING' | 'SURPRISE_GIFT' | 'TRY_AGAIN';

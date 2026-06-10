@@ -1,22 +1,50 @@
 import { Prize, MatchConfig } from './types';
 
-export const DEFAULT_MATCH: MatchConfig = {
-  team1Name: 'Brasil',
-  team1Flag: '🇧🇷',
-  team2Name: 'Haiti',
-  team2Flag: '🇭🇹'
-};
+export const CONFIRMED_MATCHES: MatchConfig[] = [
+  {
+    id: 'bra_mar',
+    team1Name: 'Brasil',
+    team1Flag: '🇧🇷',
+    team2Name: 'Marrocos',
+    team2Flag: '🇲🇦',
+    dateStr: '13/06 às 19:00',
+    location: 'Nova Jersey'
+  },
+  {
+    id: 'bra_hai',
+    team1Name: 'Brasil',
+    team1Flag: '🇧🇷',
+    team2Name: 'Haiti',
+    team2Flag: '🇭🇹',
+    dateStr: '19/06 às 21:30',
+    location: 'Filadélfia'
+  },
+  {
+    id: 'esc_bra',
+    team1Name: 'Escócia',
+    team1Flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+    team2Name: 'Brasil',
+    team2Flag: '🇧🇷',
+    dateStr: '24/06 às 19:00',
+    location: 'Miami'
+  }
+];
 
-export function getLoadedMatch(): MatchConfig {
+export function getLoadedMatches(): MatchConfig[] {
   try {
-    const saved = localStorage.getItem('boutique_match_config');
+    const saved = localStorage.getItem('boutique_matches_config');
     if (saved) {
       return JSON.parse(saved);
     }
   } catch (e) {
-    console.error('Error loading custom match', e);
+    console.error('Error loading custom matches', e);
   }
-  return DEFAULT_MATCH;
+  return CONFIRMED_MATCHES;
+}
+
+export function getLoadedMatch(): MatchConfig {
+  const matches = getLoadedMatches();
+  return matches[0]; // Fallback for single match references
 }
 
 export const PRIZES: Prize[] = [

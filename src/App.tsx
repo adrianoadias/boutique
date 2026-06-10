@@ -16,7 +16,7 @@ import RegisterForm from './components/RegisterForm';
 import InstagramUnlock from './components/InstagramUnlock';
 import WheelOfFortune from './components/WheelOfFortune';
 import FinalResult from './components/FinalResult';
-import { PRIZES, getLoadedMatch } from './data';
+import { PRIZES, getLoadedMatch, getLoadedMatches } from './data';
 import { Flame, Star, Coffee, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import AdminPanel from './components/AdminPanel';
 
@@ -28,6 +28,7 @@ const LOCAL_STORAGE_STEP_KEY = 'boutique_copa_step';
 export default function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [matchConfig, setMatchConfig] = useState<MatchConfig>(() => getLoadedMatch());
+  const [matchesConfig, setMatchesConfig] = useState<MatchConfig[]>(() => getLoadedMatches());
 
   // Initialize states with safe localStorage backups
   const [step, setStep] = useState<AppStep>(() => {
@@ -42,7 +43,28 @@ export default function App() {
 
   const [guess, setGuess] = useState<MatchGuess>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_GUESS_KEY);
-    return saved ? JSON.parse(saved) : { brazilScore: 0, haitiScore: 0 };
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.predictions) && parsed.predictions.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const initialMatches = getLoadedMatches();
+    return {
+      brazilScore: 0,
+      haitiScore: 0,
+      firstGoalScorer: '',
+      predictions: initialMatches.map(m => ({
+        matchId: m.id,
+        team1Score: 0,
+        team2Score: 0,
+        firstGoalScorer: ''
+      }))
+    };
   });
 
   const [prize, setPrize] = useState<Prize | null>(() => {
@@ -84,6 +106,7 @@ export default function App() {
         brazilScore: guess.brazilScore,
         haitiScore: guess.haitiScore,
         firstGoalScorer: guess.firstGoalScorer || '',
+        predictions: guess.predictions || [],
         prizeTitle: wonPrize.title,
         prizeCode: wonPrize.couponCode,
         timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
@@ -105,7 +128,18 @@ export default function App() {
     localStorage.removeItem(LOCAL_STORAGE_STEP_KEY);
     
     setUser({ name: '', phone: '', cpf: '' });
-    setGuess({ brazilScore: 0, haitiScore: 0, firstGoalScorer: '' });
+    const initialMatches = getLoadedMatches();
+    setGuess({
+      brazilScore: 0,
+      haitiScore: 0,
+      firstGoalScorer: '',
+      predictions: initialMatches.map(m => ({
+        matchId: m.id,
+        team1Score: 0,
+        team2Score: 0,
+        firstGoalScorer: ''
+      }))
+    });
     setPrize(null);
     setStep('INFO_FORM');
   };
@@ -161,14 +195,11 @@ export default function App() {
       }
       setStep(targetStep);
     }
-  };
-
-  return (
-    <div className="min-h-screen bg-brazil-yellow flex justify-center items-start text-brazil-blue font-sans">
-      {/* MOBILE-ONLY WRAPPER CONTAINER:
-          Centering on desktop with an attractive high-end shadow container, but filling
-          the entire mobile layout space perfectly natively. */}
-      <div className="w-full max-w-md min-h-screen bg-white relative shadow-2xl flex flex-col border-x-4 border-brazil-blue overflow-hidden">
+  };  return (
+    <div className="min-h-screen bg-white flex flex-col text-brazil-blue font-sans w-full box-border overflow-x-hidden">
+      {/* FULL-SCREEN RESPONSIVE PORTAL:
+          Fills 100% space seamlessly on computer, TV, tablet, and mobile, with no borders or forced aspect confinement. */}
+      <div className="w-full min-h-screen bg-white relative flex flex-col overflow-x-hidden">
         
         {/* Dynamic BBQ Ember Grill Particles drifting in the background */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-15">
@@ -180,118 +211,124 @@ export default function App() {
         </div>
 
         {/* Global Page Header */}
-        <div className="relative z-10">
+        <div className="relative z-10 w-full">
           <Header matchConfig={matchConfig} />
         </div>
 
         {/* Step Navigation Bar */}
-        <div className="bg-stone-50 border-b-2 border-stone-150 px-3 py-2.5 flex items-center justify-between select-none relative z-10 font-display shadow-inner">
-          <button
-            type="button"
-            onClick={goPrevStep}
-            disabled={currentIdx === 0}
-            className="flex items-center gap-0.5 text-[10px] font-black uppercase text-brazil-blue disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer transition py-1 px-2 rounded-lg hover:bg-stone-200"
-          >
-            <ChevronLeft className="w-3.5 h-3.5 stroke-[3]" />
-            Voltar
-          </button>
+        <div className="bg-stone-50 border-b-2 border-stone-150 py-2.5 select-none relative z-10 font-display shadow-inner w-full">
+          <div className="max-w-4xl mx-auto w-full px-4 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={goPrevStep}
+              disabled={currentIdx === 0}
+              className="flex items-center gap-0.5 text-[10px] font-black uppercase text-brazil-blue disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer transition py-1 px-2 rounded-lg hover:bg-stone-200"
+            >
+              <ChevronLeft className="w-3.5 h-3.5 stroke-[3]" />
+              Voltar
+            </button>
 
-          {/* Stepper nodes */}
-          <div className="flex items-center gap-1">
-            {STEPS_ORDER.map((s, idx) => {
-              const isCompleted = idx < currentIdx;
-              const isActive = s === step;
-              return (
-                <React.Fragment key={s}>
-                  <button
-                    type="button"
-                    onClick={() => handleJumpToStep(s, idx)}
-                    className={`w-6 h-6 rounded-full flex flex-col items-center justify-center text-[10px] font-black transition relative cursor-pointer ${
-                      isActive 
-                        ? 'bg-brazil-blue text-white ring-2 ring-brazil-yellow ring-offset-1 shadow' 
-                        : isCompleted
-                        ? 'bg-brazil-green text-white shadow-sm'
-                        : 'bg-stone-200 text-stone-500 hover:bg-stone-300'
-                    }`}
-                    title={STEP_LABELS[s]}
-                  >
-                    <span>{idx + 1}</span>
-                    <span className="absolute -bottom-3 text-[7px] tracking-tighter text-stone-400 font-extrabold uppercase leading-none hidden">
-                      {STEP_LABELS[s]}
-                    </span>
-                  </button>
-                  {idx < STEPS_ORDER.length - 1 && (
-                    <div className={`w-3.5 h-[3px] rounded ${idx < currentIdx ? 'bg-brazil-green' : 'bg-stone-200'}`} />
-                  )}
-                </React.Fragment>
-              );
-            })}
+            {/* Stepper nodes */}
+            <div className="flex items-center gap-1">
+              {STEPS_ORDER.map((s, idx) => {
+                const isCompleted = idx < currentIdx;
+                const isActive = s === step;
+                return (
+                  <React.Fragment key={s}>
+                    <button
+                      type="button"
+                      onClick={() => handleJumpToStep(s, idx)}
+                      className={`w-6 h-6 rounded-full flex flex-col items-center justify-center text-[10px] font-black transition relative cursor-pointer ${
+                        isActive 
+                          ? 'bg-brazil-blue text-white ring-2 ring-brazil-yellow ring-offset-1 shadow' 
+                          : isCompleted
+                          ? 'bg-brazil-green text-white shadow-sm'
+                          : 'bg-stone-200 text-stone-500 hover:bg-stone-300'
+                      }`}
+                      title={STEP_LABELS[s]}
+                    >
+                      <span>{idx + 1}</span>
+                      <span className="absolute -bottom-3 text-[7px] tracking-tighter text-stone-400 font-extrabold uppercase leading-none hidden">
+                        {STEP_LABELS[s]}
+                      </span>
+                    </button>
+                    {idx < STEPS_ORDER.length - 1 && (
+                      <div className={`w-3.5 h-[3px] rounded ${idx < currentIdx ? 'bg-brazil-green' : 'bg-stone-200'}`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={goNextStep}
+              disabled={currentIdx === STEPS_ORDER.length - 1}
+              className="flex items-center gap-0.5 text-[10px] font-black uppercase text-brazil-blue disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer transition py-1 px-2 rounded-lg hover:bg-stone-200"
+            >
+              Avançar
+              <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={goNextStep}
-            disabled={currentIdx === STEPS_ORDER.length - 1}
-            className="flex items-center gap-0.5 text-[10px] font-black uppercase text-brazil-blue disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer transition py-1 px-2 rounded-lg hover:bg-stone-200"
-          >
-            Avançar
-            <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
-          </button>
         </div>
 
         {/* Master State Switcher */}
-        <main className="flex-1 flex flex-col relative z-10 bg-white">
-          {step === 'INFO_FORM' && (
-            <RegisterForm 
-              matchConfig={matchConfig}
-              onComplete={handleFormComplete} 
-              initialUser={user} 
-              initialGuess={guess} 
-            />
-          )}
-
-          {step === 'INSTAGRAM_UNLOCK' && (
-            <InstagramUnlock 
-              userName={user.name} 
-              onUnlock={handleInstagramUnlock} 
-            />
-          )}
-
-          {step === 'SPIN_ROLETTE' && (
-            <WheelOfFortune 
-              onSpinComplete={handleSpinSuccess} 
+        <main className="flex-grow flex flex-col relative z-10 bg-white w-full">
+          <div className="max-w-4xl mx-auto w-full flex-grow flex flex-col">
+            {step === 'INFO_FORM' && (
+              <RegisterForm 
+                matchesConfig={matchesConfig}
+                onComplete={handleFormComplete} 
+                initialUser={user} 
+                initialGuess={guess} 
               />
-          )}
+            )}
 
-          {step === 'FINAL_SHARE' && prize && (
-            <FinalResult 
-              matchConfig={matchConfig}
-              user={user} 
-              guess={guess} 
-              prize={prize} 
-              onReset={handleResetAll} 
-            />
-          )}
+            {step === 'INSTAGRAM_UNLOCK' && (
+              <InstagramUnlock 
+                userName={user.name} 
+                onUnlock={handleInstagramUnlock} 
+              />
+            )}
+
+            {step === 'SPIN_ROLETTE' && (
+              <WheelOfFortune 
+                onSpinComplete={handleSpinSuccess} 
+                />
+            )}
+
+            {step === 'FINAL_SHARE' && prize && (
+              <FinalResult 
+                matchConfig={matchConfig}
+                user={user} 
+                guess={guess} 
+                prize={prize} 
+                onReset={handleResetAll} 
+              />
+            )}
+          </div>
         </main>
 
         {/* Bottom Campaign Footer */}
-        <footer className="py-5 px-4 bg-stone-50 border-t border-stone-200 relative z-10 text-center flex flex-col items-center gap-1">
-          <div className="flex items-center gap-1.5 text-[10px] uppercase font-mono font-black tracking-widest text-brazil-blue">
-            <span>🥩 BOUTIQUE DAS CARNES</span>
-            <span className="text-brazil-green">•</span>
-            <span className="text-bbq-red">SABORES DE CAMPEÃO</span>
+        <footer className="py-6 bg-stone-50 border-t border-stone-200 relative z-10 text-center w-full">
+          <div className="max-w-4xl mx-auto w-full px-4 flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase font-mono font-black tracking-widest text-brazil-blue">
+              <span>🥩 BOUTIQUE DAS CARNES</span>
+              <span className="text-brazil-green">•</span>
+              <span className="text-bbq-red">SABORES DE CAMPEÃO</span>
+            </div>
+            <p className="text-[9px] text-stone-500 font-bold">
+              © {new Date().getFullYear()} Boutique das Carnes Ltda. Todos os direitos reservados.
+            </p>
+            <button 
+              type="button"
+              onClick={() => setIsAdminOpen(true)}
+              className="flex items-center gap-1 mt-1.5 text-[8.5px] font-black uppercase text-stone-400 hover:text-brazil-blue transition duration-150 tracking-wider hover:underline cursor-pointer"
+            >
+              <Lock className="w-2.5 h-2.5" />
+              Painel do Proprietário
+            </button>
           </div>
-          <p className="text-[9px] text-stone-500 font-bold">
-            © {new Date().getFullYear()} Boutique das Carnes Ltda. Todos os direitos reservados.
-          </p>
-          <button 
-            type="button"
-            onClick={() => setIsAdminOpen(true)}
-            className="flex items-center gap-1 mt-1.5 text-[8.5px] font-black uppercase text-stone-400 hover:text-brazil-blue transition duration-150 tracking-wider hover:underline cursor-pointer"
-          >
-            <Lock className="w-2.5 h-2.5" />
-            Painel do Proprietário
-          </button>
         </footer>
 
       </div>
