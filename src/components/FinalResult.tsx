@@ -16,16 +16,20 @@ export default function FinalResult({ matchConfig, user, guess, prize, onReset }
 
   // Formatted whatsapp message with bold styling, spacings and emojis
   const formatWhatsappMessage = () => {
+    const scorerLine = guess.firstGoalScorer ? `⚽️ *Autor do 1º Gol:* ${guess.firstGoalScorer}\n` : '';
+    
     const text = `🥩 *BOUTIQUE DAS CARNES - BOLÃO DA COPA & CHURRASCO* 🇧🇷⚽️\n` +
       `-----------------------------------------\n` +
       `🔥 Acabei de dar meu palpite no Bolão Oficial de ${matchConfig.team1Name} x ${matchConfig.team2Name}!\n\n` +
       `👤 *Nome:* ${user.name}\n` +
       `📱 *WhatsApp:* ${user.phone}\n\n` +
       `⚽️ *Meu Palpite:* ${matchConfig.team1Name} ${guess.brazilScore} x ${guess.haitiScore} ${matchConfig.team2Name}\n` +
+      scorerLine +
       `🎰 *Prêmio Sorteado:* ${prize.title}\n` +
       `🎟 *Código do Cupom:* ${prize.couponCode}\n` +
+      `⚠️ *Atenção:* Retirada somente hoje, no dia do sorteio!\n` +
       `-----------------------------------------\n` +
-      `Vou retirar meu brinde e garantir os melhores cortes para assistir ao jogo! Torcendo por nós! 🍖🔥⚽`;
+      `Vou retirar meu brinde hoje mesmo e garantir os melhores cortes para assistir ao jogo! Torcendo por nós! 🍖🔥⚽`;
     
     return encodeURIComponent(text);
   };
@@ -90,6 +94,17 @@ export default function FinalResult({ matchConfig, user, guess, prize, onReset }
             <p className="text-xs text-white/90 font-semibold mt-1 leading-normal">
               {prize.description}
             </p>
+
+            {/* Same-day pickup requirements */}
+            {prize.id === 'FREE_BEER' ? (
+              <div className="mt-3 bg-red-650 text-white text-[10px] font-black uppercase tracking-wider py-2 px-3 rounded-xl border border-white/20 flex items-center justify-center gap-1.5 shadow-md animate-pulse">
+                🚨 RETIRADA HOJE OBRIGATORIAMENTE (No dia do sorteio!)
+              </div>
+            ) : prize.id !== 'TRY_AGAIN' ? (
+              <div className="mt-3 bg-yellow-450 text-stone-950 text-[10px] font-black uppercase tracking-wider py-2 px-3 rounded-xl border border-white/20 flex items-center justify-center gap-1.5 shadow-md">
+                ⚠️ RETIRADA IMPRESCINDÍVEL HOJE (No dia do sorteio!)
+              </div>
+            ) : null}
           </div>
 
           {/* Middle Section: Cut line */}
@@ -103,21 +118,29 @@ export default function FinalResult({ matchConfig, user, guess, prize, onReset }
               <span className="text-xs text-stone-500 font-bold block mt-1">{user.phone}</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 py-3 px-3.5 rounded-xl bg-stone-50 border-2 border-stone-150">
-              <div>
-                <span className="text-[9px] uppercase font-black text-stone-400 tracking-wider">Palpite Informado</span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs">{matchConfig.team1Flag}</span>
-                  <span className="text-xs font-black font-mono text-brazil-blue">
-                    {guess.brazilScore} x {guess.haitiScore}
-                  </span>
-                  <span className="text-xs">{matchConfig.team2Flag}</span>
+            <div className="flex flex-col py-2.5 px-3.5 rounded-xl bg-stone-50 border-2 border-stone-150 gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-[9px] uppercase font-black text-stone-400 tracking-wider">Palpite Informado</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-xs">{matchConfig.team1Flag}</span>
+                    <span className="text-xs font-black font-mono text-brazil-blue">
+                      {guess.brazilScore} x {guess.haitiScore}
+                    </span>
+                    <span className="text-xs">{matchConfig.team2Flag}</span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-black text-stone-400 tracking-wider">Jogo Oficial</span>
+                  <span className="text-xs font-black text-brazil-green block mt-0.5 truncate">{matchConfig.team1Name} vs {matchConfig.team2Name}</span>
                 </div>
               </div>
-              <div>
-                <span className="text-[9px] uppercase font-black text-stone-400 tracking-wider">Jogo Oficial</span>
-                <span className="text-xs font-black text-brazil-green block mt-0.5 truncate">{matchConfig.team1Name} vs {matchConfig.team2Name}</span>
-              </div>
+              {guess.firstGoalScorer && (
+                <div className="pt-1.5 border-t border-stone-200/80 flex items-center justify-between text-[10px]">
+                  <span className="font-black text-stone-400 uppercase tracking-wider text-[8px]">Seu autor do 1º Gol:</span>
+                  <span className="font-extrabold text-brazil-blue font-display">⚽ {guess.firstGoalScorer}</span>
+                </div>
+              )}
             </div>
 
             {/* BARCODE COUPON GRAPHIC */}
@@ -144,7 +167,7 @@ export default function FinalResult({ matchConfig, user, guess, prize, onReset }
               <div className="mt-2 flex items-center justify-center gap-1.5">
                 <Ticket className="w-3.5 h-3.5 text-brazil-green fill-brazil-green" />
                 <span className="text-[9px] text-brazil-green font-black uppercase tracking-[0.1em]">
-                  RETIRAR DIRETO NA BOUTIQUE DAS CARNES
+                  RETIRAR DIRETO HOJE (NO DIA DO SORTEIO) NA BOUTIQUE DAS CARNES
                 </span>
               </div>
             </div>

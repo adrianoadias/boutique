@@ -126,7 +126,7 @@ export default function InstagramUnlock({ onUnlock, userName }: InstagramUnlockP
             {fullyUnlocked ? (
               <div className="flex items-center gap-2 justify-center p-3 bg-emerald-50 border-2 border-emerald-500 rounded-xl">
                 <CheckCircle className="w-5 h-5 text-emerald-600 fill-white" />
-                <span className="text-[11px] font-black text-emerald-700">Você já está seguindo nossa página!</span>
+                <span className="text-[11px] font-black text-emerald-700">Obrigado! Aberto com sucesso! 🎉</span>
               </div>
             ) : isVerifying ? (
               <button
@@ -135,7 +135,7 @@ export default function InstagramUnlock({ onUnlock, userName }: InstagramUnlockP
                 className="w-full bg-stone-50 border-2 border-stone-200 text-stone-400 py-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black"
               >
                 <div className="w-3.5 h-3.5 border-2 border-stone-300 border-t-brazil-blue rounded-full animate-spin" />
-                VALIDANDO SEU CLIQUE NO INSTAGRAM...
+                ABRINDO INSTAGRAM...
               </button>
             ) : (
               <button
@@ -152,26 +152,22 @@ export default function InstagramUnlock({ onUnlock, userName }: InstagramUnlockP
           </div>
         </div>
 
-        {/* Dynamic bottom call to action once seguido is active */}
-        {fullyUnlocked && (
-          <div className="w-full max-w-sm mt-3 animate-bounce">
-            <button
-              type="button"
-              id="btn-instagram-unlock"
-              onClick={onUnlock}
-              className="w-full bg-bbq-red hover:brightness-110 active:scale-[0.98] py-4 rounded-2xl font-black tracking-wide text-white font-display flex items-center justify-center gap-2 text-sm shadow-xl cursor-pointer border-b-4 border-red-950 uppercase"
-            >
-              LIBERAR MINHA ROLETA AGORA
-              <ArrowRight className="w-5 h-5 stroke-[3]" />
-            </button>
-          </div>
-        )}
+        {/* Unconditional unlock button to advance directly */}
+        <div className="w-full max-w-sm mt-3 px-1">
+          <button
+            type="button"
+            id="btn-instagram-unlock"
+            onClick={onUnlock}
+            className="w-full bg-bbq-red hover:brightness-110 active:scale-[0.98] py-4 rounded-2xl font-black tracking-wide text-white font-display flex items-center justify-center gap-2 text-sm shadow-xl cursor-pointer border-b-4 border-red-950 uppercase"
+          >
+            LIBERAR MINHA ROLETA AGORA
+            <ArrowRight className="w-5 h-5 stroke-[3]" />
+          </button>
+        </div>
 
-        {!fullyUnlocked && (
-          <div className="mt-3 px-4 py-2.5 bg-white border-2 border-red-200 rounded-2xl text-[10px] text-stone-500 font-bold text-center max-w-xs leading-relaxed">
-            ⚠️ <span className="text-bbq-red font-black">OBRIGATÓRIO:</span> Você é obrigado a clicar em "SEGUIR NO INSTAGRAM" para validar seu palpite! A liberação da roleta só ocorre após a validação do clique.
-          </div>
-        )}
+        <div className="mt-2 px-4 py-2.5 bg-white border-2 border-brazil-blue/15 rounded-2xl text-[10px] text-stone-500 font-bold text-center max-w-xs leading-relaxed">
+          🎁 Siga nosso perfil para ficar por dentro de tudo na Boutique, ou clique no botão acima para girar a roleta!
+        </div>
       </div>
     </div>
   );

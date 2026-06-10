@@ -11,6 +11,7 @@ export interface UserRegistration {
 export interface MatchGuess {
   brazilScore: number;
   haitiScore: number;
+  firstGoalScorer?: string;
 }
 
 export interface MatchConfig {

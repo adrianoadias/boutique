@@ -15,6 +15,7 @@ export default function RegisterForm({ matchConfig, onComplete, initialUser, ini
   const [cpf, setCpf] = useState(initialUser.cpf || '');
   const [brazilScore, setBrazilScore] = useState(initialGuess.brazilScore);
   const [haitiScore, setHaitiScore] = useState(initialGuess.haitiScore);
+  const [firstGoalScorer, setFirstGoalScorer] = useState(initialGuess.firstGoalScorer || '');
   const [errorMsg, setErrorMsg] = useState('');
 
   // Auto mask for Brazilian CPF: 000.000.000-00
@@ -150,7 +151,7 @@ export default function RegisterForm({ matchConfig, onComplete, initialUser, ini
     }
 
     setErrorMsg('');
-    onComplete({ name: name.trim(), phone, cpf }, { brazilScore, haitiScore });
+    onComplete({ name: name.trim(), phone, cpf }, { brazilScore, haitiScore, firstGoalScorer: firstGoalScorer.trim() });
   };
 
   return (
@@ -322,6 +323,22 @@ export default function RegisterForm({ matchConfig, onComplete, initialUser, ini
               </div>
             </div>
 
+          </div>
+
+          {/* FIRST GOAL SCORER (OPTIONAL) */}
+          <div className="flex flex-col gap-1.5 mt-2.5 pt-3 border-t border-stone-100">
+            <label className="text-[11px] font-black uppercase text-brazil-blue/80 flex items-center justify-between" htmlFor="user-scorer">
+              <span>⚽ Quem fará o 1º gol do jogo?</span>
+              <span className="text-[9px] text-stone-400 lowercase font-bold tracking-tight">(não obrigatório)</span>
+            </label>
+            <input
+              id="user-scorer"
+              type="text"
+              placeholder="Ex: Vinicius Jr, Pedro, Raphinha, etc."
+              value={firstGoalScorer}
+              onChange={(e) => setFirstGoalScorer(e.target.value)}
+              className="w-full bg-stone-50 border-2 border-stone-200 focus:border-brazil-blue focus:ring-1 focus:ring-brazil-blue rounded-xl py-3 px-4 text-sm font-bold text-brazil-blue placeholder-stone-400 transition-all outline-none"
+            />
           </div>
         </div>
 

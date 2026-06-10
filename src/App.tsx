@@ -17,7 +17,7 @@ import InstagramUnlock from './components/InstagramUnlock';
 import WheelOfFortune from './components/WheelOfFortune';
 import FinalResult from './components/FinalResult';
 import { PRIZES, getLoadedMatch } from './data';
-import { Flame, Star, Coffee, Lock } from 'lucide-react';
+import { Flame, Star, Coffee, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import AdminPanel from './components/AdminPanel';
 
 const LOCAL_STORAGE_USER_KEY = 'boutique_copa_user';
@@ -83,6 +83,7 @@ export default function App() {
         cpf: user.cpf,
         brazilScore: guess.brazilScore,
         haitiScore: guess.haitiScore,
+        firstGoalScorer: guess.firstGoalScorer || '',
         prizeTitle: wonPrize.title,
         prizeCode: wonPrize.couponCode,
         timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
@@ -104,9 +105,62 @@ export default function App() {
     localStorage.removeItem(LOCAL_STORAGE_STEP_KEY);
     
     setUser({ name: '', phone: '', cpf: '' });
-    setGuess({ brazilScore: 0, haitiScore: 0 });
+    setGuess({ brazilScore: 0, haitiScore: 0, firstGoalScorer: '' });
     setPrize(null);
     setStep('INFO_FORM');
+  };
+
+  const STEPS_ORDER: AppStep[] = ['INFO_FORM', 'INSTAGRAM_UNLOCK', 'SPIN_ROLETTE', 'FINAL_SHARE'];
+  const STEP_LABELS = {
+    INFO_FORM: 'Palpite',
+    INSTAGRAM_UNLOCK: 'Redes',
+    SPIN_ROLETTE: 'Roleta',
+    FINAL_SHARE: 'Prêmio'
+  };
+
+  const currentIdx = STEPS_ORDER.indexOf(step);
+
+  const validateStepTrans = (targetStep: AppStep): boolean => {
+    if (targetStep !== 'INFO_FORM') {
+      if (!user.name.trim() || !user.phone.trim()) {
+        alert('Por favor, preencha seu Nome e WhatsApp/Celular na primeira etapa antes de avançar!');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const goPrevStep = () => {
+    if (currentIdx > 0) {
+      setStep(STEPS_ORDER[currentIdx - 1]);
+    }
+  };
+
+  const goNextStep = () => {
+    if (currentIdx < STEPS_ORDER.length - 1) {
+      const nextStep = STEPS_ORDER[currentIdx + 1];
+      if (validateStepTrans(nextStep)) {
+        if (nextStep === 'FINAL_SHARE' && !prize) {
+          const validPrizes = PRIZES.filter(p => p.id !== 'TRY_AGAIN');
+          const randomPrize = validPrizes[Math.floor(Math.random() * validPrizes.length)];
+          setPrize(randomPrize);
+          localStorage.setItem(LOCAL_STORAGE_PRIZE_KEY, JSON.stringify(randomPrize));
+        }
+        setStep(nextStep);
+      }
+    }
+  };
+
+  const handleJumpToStep = (targetStep: AppStep, idx: number) => {
+    if (validateStepTrans(targetStep)) {
+      if (targetStep === 'FINAL_SHARE' && !prize) {
+        const validPrizes = PRIZES.filter(p => p.id !== 'TRY_AGAIN');
+        const randomPrize = validPrizes[Math.floor(Math.random() * validPrizes.length)];
+        setPrize(randomPrize);
+        localStorage.setItem(LOCAL_STORAGE_PRIZE_KEY, JSON.stringify(randomPrize));
+      }
+      setStep(targetStep);
+    }
   };
 
   return (
@@ -128,6 +182,61 @@ export default function App() {
         {/* Global Page Header */}
         <div className="relative z-10">
           <Header matchConfig={matchConfig} />
+        </div>
+
+        {/* Step Navigation Bar */}
+        <div className="bg-stone-50 border-b-2 border-stone-150 px-3 py-2.5 flex items-center justify-between select-none relative z-10 font-display shadow-inner">
+          <button
+            type="button"
+            onClick={goPrevStep}
+            disabled={currentIdx === 0}
+            className="flex items-center gap-0.5 text-[10px] font-black uppercase text-brazil-blue disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer transition py-1 px-2 rounded-lg hover:bg-stone-200"
+          >
+            <ChevronLeft className="w-3.5 h-3.5 stroke-[3]" />
+            Voltar
+          </button>
+
+          {/* Stepper nodes */}
+          <div className="flex items-center gap-1">
+            {STEPS_ORDER.map((s, idx) => {
+              const isCompleted = idx < currentIdx;
+              const isActive = s === step;
+              return (
+                <React.Fragment key={s}>
+                  <button
+                    type="button"
+                    onClick={() => handleJumpToStep(s, idx)}
+                    className={`w-6 h-6 rounded-full flex flex-col items-center justify-center text-[10px] font-black transition relative cursor-pointer ${
+                      isActive 
+                        ? 'bg-brazil-blue text-white ring-2 ring-brazil-yellow ring-offset-1 shadow' 
+                        : isCompleted
+                        ? 'bg-brazil-green text-white shadow-sm'
+                        : 'bg-stone-200 text-stone-500 hover:bg-stone-300'
+                    }`}
+                    title={STEP_LABELS[s]}
+                  >
+                    <span>{idx + 1}</span>
+                    <span className="absolute -bottom-3 text-[7px] tracking-tighter text-stone-400 font-extrabold uppercase leading-none hidden">
+                      {STEP_LABELS[s]}
+                    </span>
+                  </button>
+                  {idx < STEPS_ORDER.length - 1 && (
+                    <div className={`w-3.5 h-[3px] rounded ${idx < currentIdx ? 'bg-brazil-green' : 'bg-stone-200'}`} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={goNextStep}
+            disabled={currentIdx === STEPS_ORDER.length - 1}
+            className="flex items-center gap-0.5 text-[10px] font-black uppercase text-brazil-blue disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer transition py-1 px-2 rounded-lg hover:bg-stone-200"
+          >
+            Avançar
+            <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
+          </button>
         </div>
 
         {/* Master State Switcher */}
