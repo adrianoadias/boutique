@@ -82,6 +82,57 @@ export default function App() {
     setGuess(newGuess);
     localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(newUser));
     localStorage.setItem(LOCAL_STORAGE_GUESS_KEY, JSON.stringify(newGuess));
+
+    // Save to database immediately so they are counted, even if they quit before spinning!
+    try {
+      const existing = localStorage.getItem('boutique_all_registrations');
+      const records = existing ? JSON.parse(existing) : [];
+      
+      const cleanInputCpf = newUser.cpf ? newUser.cpf.replace(/\D/g, '') : '';
+      const cleanInputPhone = newUser.phone.replace(/\D/g, '');
+
+      // Identify if this is the special test user
+      const isTestUser = cleanInputCpf === '41107627826' || cleanInputPhone === '47991238671' || newUser.name.trim().toLowerCase() === 'adriano dias';
+
+      // Check if duplicate already exists (to prevent duplicating in the database if they go back and forth)
+      const existingIndex = records.findIndex((r: any) => {
+        const itemCpf = (r.cpf || '').replace(/\D/g, '');
+        const itemPhone = (r.phone || '').replace(/\D/g, '');
+        return (!isTestUser && ((cleanInputCpf && itemCpf === cleanInputCpf) || itemPhone === cleanInputPhone));
+      });
+
+      if (existingIndex > -1) {
+        // Already registered, update predictions just in case they went back to change drafts
+        records[existingIndex].brazilScore = newGuess.brazilScore;
+        records[existingIndex].haitiScore = newGuess.haitiScore;
+        records[existingIndex].predictions = newGuess.predictions || [];
+        records[existingIndex].firstGoalScorer = newGuess.firstGoalScorer || '';
+        // Capture their ID back to sync of roulette flow
+        localStorage.setItem('boutique_current_registration_id', records[existingIndex].id);
+      } else {
+        const registrationId = Math.random().toString(36).substring(2, 9).toUpperCase();
+        localStorage.setItem('boutique_current_registration_id', registrationId);
+
+        const newRecord = {
+          id: registrationId,
+          name: newUser.name,
+          phone: newUser.phone,
+          cpf: newUser.cpf,
+          brazilScore: newGuess.brazilScore,
+          haitiScore: newGuess.haitiScore,
+          firstGoalScorer: newGuess.firstGoalScorer || '',
+          predictions: newGuess.predictions || [],
+          prizeTitle: 'Pendente (Não girou roleta) ⏱️',
+          prizeCode: 'PENDENTE',
+          timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+        };
+        records.unshift(newRecord);
+      }
+      localStorage.setItem('boutique_all_registrations', JSON.stringify(records));
+    } catch (e) {
+      console.error('Error saving immediate registration', e);
+    }
+
     setStep('INSTAGRAM_UNLOCK');
   };
 
@@ -93,29 +144,51 @@ export default function App() {
     setPrize(wonPrize);
     localStorage.setItem(LOCAL_STORAGE_PRIZE_KEY, JSON.stringify(wonPrize));
     
-    // Save to integrated answers database (localStorage)
+    // Update existing registration record with the won prize
     try {
       const existing = localStorage.getItem('boutique_all_registrations');
       const records = existing ? JSON.parse(existing) : [];
       
-      const newRecord = {
-        id: Math.random().toString(36).substring(2, 9).toUpperCase(),
-        name: user.name,
-        phone: user.phone,
-        cpf: user.cpf,
-        brazilScore: guess.brazilScore,
-        haitiScore: guess.haitiScore,
-        firstGoalScorer: guess.firstGoalScorer || '',
-        predictions: guess.predictions || [],
-        prizeTitle: wonPrize.title,
-        prizeCode: wonPrize.couponCode,
-        timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-      };
+      const currentRegId = localStorage.getItem('boutique_current_registration_id');
+      const cleanInputCpf = user.cpf ? user.cpf.replace(/\D/g, '') : '';
+      const cleanInputPhone = user.phone.replace(/\D/g, '');
+
+      let recordIndex = -1;
+      if (currentRegId) {
+        recordIndex = records.findIndex((r: any) => r.id === currentRegId);
+      }
+      if (recordIndex === -1) {
+        recordIndex = records.findIndex((r: any) => {
+          const itemCpf = (r.cpf || '').replace(/\D/g, '');
+          const itemPhone = (r.phone || '').replace(/\D/g, '');
+          return (cleanInputCpf && itemCpf === cleanInputCpf) || itemPhone === cleanInputPhone;
+        });
+      }
+
+      if (recordIndex > -1) {
+        records[recordIndex].prizeTitle = wonPrize.title;
+        records[recordIndex].prizeCode = wonPrize.couponCode;
+      } else {
+        // Fallback: create fresh record if not found
+        const newRecord = {
+          id: currentRegId || Math.random().toString(36).substring(2, 9).toUpperCase(),
+          name: user.name,
+          phone: user.phone,
+          cpf: user.cpf,
+          brazilScore: guess.brazilScore,
+          haitiScore: guess.haitiScore,
+          firstGoalScorer: guess.firstGoalScorer || '',
+          predictions: guess.predictions || [],
+          prizeTitle: wonPrize.title,
+          prizeCode: wonPrize.couponCode,
+          timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+        };
+        records.unshift(newRecord);
+      }
       
-      records.unshift(newRecord); // Add record to beginning of list
       localStorage.setItem('boutique_all_registrations', JSON.stringify(records));
     } catch (e) {
-      console.error('Error saving registration', e);
+      console.error('Error updating registration with prize', e);
     }
 
     setStep('FINAL_SHARE');
