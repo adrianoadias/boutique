@@ -137,10 +137,16 @@ export default function RegisterForm({ matchesConfig, onComplete, initialUser, i
       return;
     }
 
-    // Check integrated database duplicate records (uniqueness by CPF or Phone)
+    // Check integrated database duplicate records (uniqueness by CPF matches, which are absolutely unique in Brazil)
     try {
       const saved = localStorage.getItem('boutique_all_registrations');
-      const records = saved ? JSON.parse(saved) : [];
+      let records: any[] = [];
+      try {
+        records = saved ? JSON.parse(saved) : [];
+        if (!Array.isArray(records)) records = [];
+      } catch {
+        records = [];
+      }
       
       const cleanInputCpf = cpf.replace(/\D/g, '');
       const cleanInputPhone = phone.replace(/\D/g, '');
@@ -150,12 +156,11 @@ export default function RegisterForm({ matchesConfig, onComplete, initialUser, i
 
       const isDuplicate = records.some((r: any) => {
         const itemCpf = (r.cpf || '').replace(/\D/g, '');
-        const itemPhone = (r.phone || '').replace(/\D/g, '');
-        return itemCpf === cleanInputCpf || itemPhone === cleanInputPhone;
+        return cleanInputCpf && itemCpf === cleanInputCpf;
       });
 
       if (isDuplicate && !isTestUser) {
-        setErrorMsg('Desculpe, esse CPF ou WhatsApp já possui um palpite registrado! Limite de 1 participação por pessoa.');
+        setErrorMsg('Desculpe, esse CPF já possui um palpite registrado! Limite de 1 participação por pessoa.');
         return;
       }
     } catch (err) {

@@ -117,7 +117,13 @@ export default function App() {
     // Save to database immediately so they are counted, even if they quit before spinning!
     try {
       const existing = localStorage.getItem('boutique_all_registrations');
-      const records = existing ? JSON.parse(existing) : [];
+      let records: any[] = [];
+      try {
+        records = existing ? JSON.parse(existing) : [];
+        if (!Array.isArray(records)) records = [];
+      } catch {
+        records = [];
+      }
       
       const cleanInputCpf = newUser.cpf ? newUser.cpf.replace(/\D/g, '') : '';
       const cleanInputPhone = newUser.phone.replace(/\D/g, '');
@@ -128,8 +134,7 @@ export default function App() {
       // Check if duplicate already exists (to prevent duplicating in the database if they go back and forth)
       const existingIndex = records.findIndex((r: any) => {
         const itemCpf = (r.cpf || '').replace(/\D/g, '');
-        const itemPhone = (r.phone || '').replace(/\D/g, '');
-        return (!isTestUser && ((cleanInputCpf && itemCpf === cleanInputCpf) || itemPhone === cleanInputPhone));
+        return (!isTestUser && cleanInputCpf && itemCpf === cleanInputCpf);
       });
 
       if (existingIndex > -1) {
@@ -197,7 +202,13 @@ export default function App() {
     // Update existing registration record with the won prize
     try {
       const existing = localStorage.getItem('boutique_all_registrations');
-      const records = existing ? JSON.parse(existing) : [];
+      let records: any[] = [];
+      try {
+        records = existing ? JSON.parse(existing) : [];
+        if (!Array.isArray(records)) records = [];
+      } catch {
+        records = [];
+      }
       
       const currentRegId = localStorage.getItem('boutique_current_registration_id');
       const cleanInputCpf = user.cpf ? user.cpf.replace(/\D/g, '') : '';
@@ -212,8 +223,7 @@ export default function App() {
       if (recordIndex === -1) {
         recordIndex = records.findIndex((r: any) => {
           const itemCpf = (r.cpf || '').replace(/\D/g, '');
-          const itemPhone = (r.phone || '').replace(/\D/g, '');
-          return (cleanInputCpf && itemCpf === cleanInputCpf) || itemPhone === cleanInputPhone;
+          return cleanInputCpf && itemCpf === cleanInputCpf;
         });
       }
 

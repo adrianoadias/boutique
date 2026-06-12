@@ -31,10 +31,18 @@ async function startServer() {
         fs.writeFileSync(dbPath, '[]', 'utf-8');
         return [];
       }
-      const data = fs.readFileSync(dbPath, 'utf-8');
-      return JSON.parse(data || '[]');
+      const data = fs.readFileSync(dbPath, 'utf-8').trim();
+      if (!data) return [];
+      return JSON.parse(data);
     } catch (e) {
       console.error('Error reading registrations from backup file:', e);
+      try {
+        const errorPath = path.join(dbDir, `corrupted_registrations_${Date.now()}.json`);
+        fs.renameSync(dbPath, errorPath);
+        console.warn(`Moved corrupted DB to ${errorPath}`);
+      } catch (err) {
+        console.error('Could not move corrupted DB file:', err);
+      }
       return [];
     }
   };
@@ -74,14 +82,13 @@ async function startServer() {
       // Identify special test users who can duplicate
       const isTestUser = cleanInputCpf === '41107627826' || cleanInputPhone === '47991238671' || newRecord.name.trim().toLowerCase() === 'adriano dias';
 
-      // Find duplicate index by ID, CPF, or Phone
+      // Find duplicate index by ID or CPF strictly (CPF is the absolute unique identifier in Brazil)
       let existingIndex = records.findIndex((r: any) => r.id === newRecord.id);
       
       if (existingIndex === -1 && !isTestUser) {
         existingIndex = records.findIndex((r: any) => {
           const itemCpf = (r.cpf || '').replace(/\D/g, '');
-          const itemPhone = (r.phone || '').replace(/\D/g, '');
-          return (cleanInputCpf && itemCpf === cleanInputCpf) || (itemPhone === cleanInputPhone);
+          return cleanInputCpf && itemCpf === cleanInputCpf;
         });
       }
 
@@ -114,8 +121,52 @@ async function startServer() {
     }
   });
 
+  // Robustly parse timestamps in format "DD/MM/YYYY, HH:MM:SS" (or variants, including AM/PM) and ISO strings
+  const parseTimestampToMs = (ts: any): number => {
+    if (!ts) return 0;
+    if (typeof ts !== 'string') return 0;
+    try {
+      if (ts.includes('T') || ts.includes('-')) {
+        const ms = Date.parse(ts);
+        if (!isNaN(ms)) return ms;
+      }
+      const clean = ts.replace(',', '').trim(); 
+      const parts = clean.split(/\s+/);
+      if (parts.length >= 2) {
+        const datePart = parts[0]; 
+        const timePart = parts[1]; 
+        const ampm = parts[2]; 
+        
+        const dateParts = datePart.split('/');
+        if (dateParts.length === 3) {
+          const day = parseInt(dateParts[0], 10);
+          const month = parseInt(dateParts[1], 10) - 1; 
+          const year = parseInt(dateParts[2], 10);
+          
+          const timeParts = timePart.split(':');
+          let hour = parseInt(timeParts[0], 10);
+          const min = parseInt(timeParts[1], 10);
+          const sec = timeParts[2] ? parseInt(timeParts[2], 10) : 0;
+          
+          if (ampm) {
+            if (ampm.toUpperCase() === 'PM' && hour < 12) hour += 12;
+            if (ampm.toUpperCase() === 'AM' && hour === 12) hour = 0;
+          }
+          
+          const d = new Date(year, month, day, hour, min, sec);
+          return d.getTime();
+        }
+      }
+      const ms = Date.parse(ts);
+      return isNaN(ms) ? 0 : ms;
+    } catch (e) {
+      console.error('Error parsing timestamp', ts, e);
+      return 0;
+    }
+  };
+
   // API Route III: Bulk Synchronisation (client localStorage <-> server file database)
-  // Ensures absolutely no participant list discrepencies can exist!
+  // Ensures absolutely no participant list discrepancies can exist!
   app.post('/api/sync', (req, res) => {
     try {
       const clientRecords = req.body || [];
@@ -159,10 +210,10 @@ async function startServer() {
         }
       });
 
-      // Turn map back to array & sort by newest timestamp first
+      // Turn map back to array & sort by newest timestamp first utilizing robust parsing function
       const mergedList = Array.from(mergedMap.values()).sort((a, b) => {
-        const timeA = new Date(a.timestamp?.split(', ').reverse().join(' ') || 0).getTime();
-        const timeB = new Date(b.timestamp?.split(', ').reverse().join(' ') || 0).getTime();
+        const timeA = parseTimestampToMs(a.timestamp);
+        const timeB = parseTimestampToMs(b.timestamp);
         return timeB - timeA;
       });
 
