@@ -4,8 +4,8 @@ import {
   collection, 
   doc, 
   setDoc, 
-  getDocs, 
-  getDoc,
+  getDocsFromServer, 
+  getDocFromServer,
   deleteDoc, 
   writeBatch,
   query,
@@ -112,7 +112,7 @@ export async function saveRegistrationToCloud(record: any): Promise<boolean> {
 export async function loadRegistrationsFromCloud(): Promise<any[]> {
   try {
     const colRef = collection(db, 'registrations');
-    const snapshot = await getDocs(colRef);
+    const snapshot = await getDocsFromServer(colRef);
     const records: any[] = [];
     
     snapshot.forEach(docSnap => {
@@ -238,7 +238,7 @@ export async function clearAndBackupCloud(password: string, backupName: string):
 export async function loadBackupsFromCloud(): Promise<any[]> {
   try {
     const colRef = collection(db, 'backups');
-    const snapshot = await getDocs(colRef);
+    const snapshot = await getDocsFromServer(colRef);
     const backups: any[] = [];
     
     snapshot.forEach(docSnap => {

@@ -21,7 +21,8 @@ import { Flame, Star, Coffee, Lock, ChevronLeft, ChevronRight } from 'lucide-rea
 import AdminPanel from './components/AdminPanel';
 import { 
   saveRegistrationToCloud, 
-  syncLocalRecordsWithCloud 
+  syncLocalRecordsWithCloud,
+  loadRegistrationsFromCloud
 } from './lib/firebase';
 
 const LOCAL_STORAGE_USER_KEY = 'boutique_copa_user';
@@ -84,6 +85,17 @@ export default function App() {
   // Synchronize local registration history with server side on mount
   useEffect(() => {
     try {
+      // 100% Cloud-First query to obtain active records and purge any deleted or stale cache
+      loadRegistrationsFromCloud()
+        .then(records => {
+          if (records) {
+            localStorage.setItem('boutique_all_registrations', JSON.stringify(records));
+            // Refresh components and storage events
+            window.dispatchEvent(new Event('storage'));
+          }
+        })
+        .catch(err => console.error('Cloud Firestore fetch error:', err));
+
       const existing = localStorage.getItem('boutique_all_registrations');
       let clientRecords: any[] = [];
       try {
@@ -92,15 +104,6 @@ export default function App() {
       } catch {
         clientRecords = [];
       }
-      
-      // Dual synchronisation: sync offline/local records with Firestore Cloud
-      syncLocalRecordsWithCloud(clientRecords)
-        .then(records => {
-          localStorage.setItem('boutique_all_registrations', JSON.stringify(records));
-          // Refresh components and storage events
-          window.dispatchEvent(new Event('storage'));
-        })
-        .catch(err => console.error('Cloud Firestore sync error:', err));
 
       // Standard Node server backup POST as optional fallback
       fetch('/api/sync', {

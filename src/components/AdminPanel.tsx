@@ -108,6 +108,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     return localStorage.getItem('boutique_store_phone_number') || '5547991238671';
   });
   const [loginError, setLoginError] = useState('');
+  const [dbError, setDbError] = useState<string | null>(null);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPrize, setFilterPrize] = useState('ALL');
@@ -168,9 +169,10 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     // Pull from Cloud Firestore first as the definitive, real-time source of truth!
     loadRegistrationsFromCloud()
       .then(cloudRecords => {
-        if (cloudRecords && cloudRecords.length > 0) {
+        if (cloudRecords) { // Allow empty arrays to sync and clear visual/cache stale data!
           localStorage.setItem('boutique_all_registrations', JSON.stringify(cloudRecords));
           setRecords(cloudRecords);
+          setDbError(null); // Clear any database errors
         }
         const now = new Date();
         const timeStr = now.toLocaleTimeString('pt-BR');
@@ -179,6 +181,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       })
       .catch(err => {
         console.error('Error loading registrations from Firestore Cloud:', err);
+        setDbError(err instanceof Error ? err.message : String(err));
       });
 
     // Option II: Fallback fetch from standard api if available
@@ -222,7 +225,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     // Also fetch archived backups from Cloud Firestore
     loadBackupsFromCloud()
       .then(cloudBackups => {
-        if (cloudBackups && cloudBackups.length > 0) {
+        if (cloudBackups) { // Allow empty backup list to sync too
           localStorage.setItem('boutique_finalized_backups', JSON.stringify(cloudBackups));
           setBackups(cloudBackups);
         }
@@ -653,6 +656,30 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               <div className="bg-white p-2 rounded-xl border border-stone-150 shadow-sm">
                 <span className="block text-[8px] font-black uppercase text-stone-400 leading-none">Descontos Premiados</span>
                 <span className="text-sm font-black text-bbq-red font-mono">{discountsWon}</span>
+              </div>
+            </div>
+
+            {/* Database Diagnostics and Sync Indicator */}
+            <div className="mx-4 mt-3 p-2.5 rounded-2xl text-[9px] font-black uppercase flex flex-col sm:flex-row items-center justify-between gap-1 select-none border border-stone-150 bg-stone-50 text-stone-600 shrink-0">
+              {dbError ? (
+                <div className="flex items-center gap-1.5 text-bbq-red">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                  <span>Erro de Conexão: {dbError}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-brazil-green">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span>Banco de Dados 100% Nuvem (Sem dependência de Cache)</span>
+                </div>
+              )}
+              <div className="text-stone-400 text-[8px] font-mono">
+                Sincronia: {lastSyncTime || '--:--:--'}
               </div>
             </div>
 
