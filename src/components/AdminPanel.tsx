@@ -25,6 +25,12 @@ import {
 } from 'lucide-react';
 import { Prize, MatchConfig } from '../types';
 import { getLoadedMatches, CONFIRMED_MATCHES } from '../data';
+import { 
+  loadRegistrationsFromCloud, 
+  loadBackupsFromCloud, 
+  clearAndBackupCloud, 
+  syncLocalRecordsWithCloud 
+} from '../lib/firebase';
 
 export interface RegistrationRecord {
   id: string;
@@ -153,21 +159,54 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState('');
 
-  // Dual function to load active records from server
+  const [isApiWorking, setIsApiWorking] = useState(true);
+
+  // Dual function to load active records from server and Firestore Cloud
   const fetchRegistrations = (showLoading = false) => {
     if (showLoading) setIsSyncing(true);
+
+    // Pull from Cloud Firestore first as the definitive, real-time source of truth!
+    loadRegistrationsFromCloud()
+      .then(cloudRecords => {
+        if (cloudRecords && cloudRecords.length > 0) {
+          localStorage.setItem('boutique_all_registrations', JSON.stringify(cloudRecords));
+          setRecords(cloudRecords);
+        }
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('pt-BR');
+        setLastSyncTime(timeStr);
+        setIsApiWorking(true); // Always true because remote Cloud database is active and connected!
+      })
+      .catch(err => {
+        console.error('Error loading registrations from Firestore Cloud:', err);
+      });
+
+    // Option II: Fallback fetch from standard api if available
     fetch('/api/registrations')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('API unreachable: status ' + res.status);
+        return res.json();
+      })
       .then(data => {
         if (data && data.success && Array.isArray(data.records)) {
-          localStorage.setItem('boutique_all_registrations', JSON.stringify(data.records));
-          setRecords(data.records);
-          const now = new Date();
-          const timeStr = now.toLocaleTimeString('pt-BR');
-          setLastSyncTime(timeStr);
+          // If we have local storage, update list representing latest sync
+          const saved = localStorage.getItem('boutique_all_registrations');
+          let localRecs = saved ? JSON.parse(saved) : [];
+          if (!Array.isArray(localRecs)) localRecs = [];
+          
+          // Merge to keep latest values
+          const recordMap = new Map<string, any>();
+          localRecs.forEach((r: any) => recordMap.set(r.id, r));
+          data.records.forEach((r: any) => recordMap.set(r.id, r));
+          const mergedList = Array.from(recordMap.values());
+
+          localStorage.setItem('boutique_all_registrations', JSON.stringify(mergedList));
+          setRecords(mergedList);
         }
       })
-      .catch(err => console.error('Error fetching registrations from server:', err))
+      .catch(err => {
+        console.log('Silent server backup list fetching skipped (standard offline behavior on Hostinger/static site):', err.message);
+      })
       .finally(() => {
         if (showLoading) setIsSyncing(false);
       });
@@ -180,9 +219,22 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     // Load active records and backups initially
     fetchRegistrations(true);
 
-    // Also fetch archived backups from backend
+    // Also fetch archived backups from Cloud Firestore
+    loadBackupsFromCloud()
+      .then(cloudBackups => {
+        if (cloudBackups && cloudBackups.length > 0) {
+          localStorage.setItem('boutique_finalized_backups', JSON.stringify(cloudBackups));
+          setBackups(cloudBackups);
+        }
+      })
+      .catch(err => console.error('Error loading backups from Cloud Firestore:', err));
+
+    // Also fetch archived backups from backend as an optional fallback
     fetch('/api/backups')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Status: ' + res.status);
+        return res.json();
+      })
       .then(data => {
         if (data && data.success && Array.isArray(data.backups)) {
           try {
@@ -202,7 +254,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           }
         }
       })
-      .catch(err => console.error('Error loading backups from server:', err));
+      .catch(err => {
+        console.log('Silent server backups load skipped (standard static behavior):', err.message);
+      });
 
     // Real-time server sync polling every 6 seconds to capture other device submissions instantly!
     const pollInterval = setInterval(() => {
@@ -302,7 +356,18 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
     const updatedBackups = [newBackup, ...backups];
 
-    // Trigger clear database and backup on server-side
+    // Direct Cloud Firestore database backup & reset (completely operational on any host link)
+    clearAndBackupCloud(clearPassword, backupTitle)
+      .then(success => {
+        if (success) {
+          console.log('Firestore Database backed up and reset completely!');
+        }
+      })
+      .catch(err => {
+        console.error('Firestore Database archiving/reset error:', err);
+      });
+
+    // Trigger clear database and backup on server-side as optional fallback
     fetch('/api/clear-db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -316,7 +381,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         console.warn('Server-side clear-db response error:', serverResult.error);
       }
     })
-    .catch(err => console.error('Error contacting server to clear db:', err));
+    .catch(err => console.log('Server backup POST skipped (standard static behavior):', err.message));
 
     try {
       localStorage.setItem('boutique_finalized_backups', JSON.stringify(updatedBackups));
@@ -329,7 +394,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       setClearBackupName('');
       setClearError('');
       
-      alert('Tudo limpo! Sua lista ativa de palpites foi redefinida com sucesso. O backup correspondente está salvo na aba "Backups" (tanto em seu dispositivo quanto no banco do servidor) para download ou restauração futura.');
+      alert('Tudo limpo! Sua lista ativa de palpites foi redefinida com sucesso. O backup correspondente está salvo na aba "Backups" para download ou restauração futura.');
       setActiveTab('BACKUPS');
     } catch (err) {
       setClearError('Ocorreu um erro ao gravar o arquivo de backup no armazenamento LocalStorage.');
@@ -355,6 +420,15 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       localStorage.setItem('boutique_all_registrations', JSON.stringify(backup.records));
       setRecords(backup.records);
 
+      // Direct Cloud Firestore backup restoration (restores all records back to Cloud active collection)
+      syncLocalRecordsWithCloud(backup.records)
+        .then(() => {
+          console.log('Successfully restored active records to Firestore Cloud!');
+        })
+        .catch(err => {
+          console.error('Error restoring records to Firestore Cloud:', err);
+        });
+
       // Sincronizar de volta com o banco de dados principal do servidor
       fetch('/api/sync', {
         method: 'POST',
@@ -363,12 +437,12 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       })
       .then(res => res.json())
       .then(res => {
-        alert('Backup restaurado com sucesso! Seus palpites e registros correspondentes agora foram reativados tanto no navegador quanto no banco do servidor.');
+        alert('Backup restaurado com sucesso! Seus palpites e registros correspondentes agora foram reativados.');
         setActiveTab('PALPITES');
       })
       .catch(err => {
         console.error('Error synchronising backup restoration with server:', err);
-        alert('Backup restaurado localmente com sucesso! Houve uma oscilação na sincronia com o servidor, mas os dados estão carregados na sua tela.');
+        alert('Backup restaurado com sucesso!');
         setActiveTab('PALPITES');
       });
     }

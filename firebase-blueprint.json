@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "Registration": {
+      "title": "Registration",
+      "description": "Participant sweepstakes and score guess registration",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique registration alphanumeric ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Participant's name"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Participant's WhatsApp number"
+        },
+        "cpf": {
+          "type": "string",
+          "description": "Participant's CPF (Individual tax ID)"
+        },
+        "brazilScore": {
+          "type": "number",
+          "description": "Guessed score for team 1"
+        },
+        "haitiScore": {
+          "type": "number",
+          "description": "Guessed score for team 2"
+        },
+        "firstGoalScorer": {
+          "type": "string",
+          "description": "Candidate for first goal scorer"
+        },
+        "prizeTitle": {
+          "type": "string",
+          "description": "Text representation of won or pending prize"
+        },
+        "prizeCode": {
+          "type": "string",
+          "description": "Unique coupon code to claim the prize"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Localized representation of registration date and time"
+        }
+      },
+      "required": ["id", "name", "phone"]
+    },
+    "Backup": {
+      "title": "Backup",
+      "description": "Archived snapshot database of past contest records",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "records": {
+          "type": "array"
+        }
+      },
+      "required": ["id", "name", "timestamp", "records"]
+    }
+  },
+  "firestore": {
+    "registrations": {
+      "schema": "Registration",
+      "description": "Active participant registration entities"
+    },
+    "backups": {
+      "schema": "Backup",
+      "description": "Archived contest backups"
+    }
+  }
+}

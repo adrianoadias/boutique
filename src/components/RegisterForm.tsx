@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Smartphone, Send, Star, Zap, Plus, Minus } from 'lucide-react';
 import { UserRegistration, MatchGuess, MatchConfig } from '../types';
+import { loadRegistrationsFromCloud } from '../lib/firebase';
 
 interface RegisterFormProps {
   matchesConfig: MatchConfig[];
@@ -118,7 +119,7 @@ export default function RegisterForm({ matchesConfig, onComplete, initialUser, i
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (name.trim().length < 3) {
@@ -154,10 +155,26 @@ export default function RegisterForm({ matchesConfig, onComplete, initialUser, i
       // Identify if this is the special test user from the user request
       const isTestUser = cleanInputCpf === '41107627826' || cleanInputPhone === '47991238671' || name.trim().toLowerCase() === 'adriano dias';
 
-      const isDuplicate = records.some((r: any) => {
+      let isDuplicate = records.some((r: any) => {
         const itemCpf = (r.cpf || '').replace(/\D/g, '');
         return cleanInputCpf && itemCpf === cleanInputCpf;
       });
+
+      // Cross-referencing remote Real-time Cloud Database to prohibit duplicates from other browsers/phones
+      try {
+        const cloudRecords = await loadRegistrationsFromCloud();
+        if (cloudRecords && cloudRecords.length > 0) {
+          const cloudDuplicate = cloudRecords.some((r: any) => {
+            const itemCpf = (r.cpf || '').replace(/\D/g, '');
+            return cleanInputCpf && itemCpf === cleanInputCpf;
+          });
+          if (cloudDuplicate) {
+            isDuplicate = true;
+          }
+        }
+      } catch (errCloud) {
+        console.error('Real-time cloud uniqueness double-check failed:', errCloud);
+      }
 
       if (isDuplicate && !isTestUser) {
         setErrorMsg('Desculpe, esse CPF já possui um palpite registrado! Limite de 1 participação por pessoa.');
