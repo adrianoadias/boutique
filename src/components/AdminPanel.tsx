@@ -105,7 +105,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showClearPassword, setShowClearPassword] = useState(false);
   const [storePhone, setStorePhone] = useState(() => {
-    return localStorage.getItem('boutique_store_phone_number') || '5547991238671';
+    return localStorage.getItem('boutique_store_phone_number') || '554797633756';
   });
   const [loginError, setLoginError] = useState('');
   const [dbError, setDbError] = useState<string | null>(null);
@@ -1181,7 +1181,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                     <div className="flex flex-col gap-1">
                       <input
                         type="text"
-                        placeholder="Ex: 5547991238671"
+                        placeholder="Ex: 554797633756"
                         value={storePhone}
                         onChange={(e) => setStorePhone(e.target.value)}
                         className="w-full bg-stone-50 border border-stone-200 focus:border-emerald-500 rounded p-1.5 text-xs font-bold font-mono text-brazil-blue outline-none"

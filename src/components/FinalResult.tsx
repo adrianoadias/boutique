@@ -53,7 +53,7 @@ export default function FinalResult({ matchConfig, user, guess, prize, onReset }
 
   const handleSendWhatsapp = () => {
     // Read dynamic store phone configured in Admin panel, or fallback to default
-    const rawPhone = localStorage.getItem('boutique_store_phone_number') || '5547991238671';
+    const rawPhone = localStorage.getItem('boutique_store_phone_number') || '554797633756';
     const cleanStorePhone = rawPhone.replace(/\D/g, '');
     const url = `https://api.whatsapp.com/send?phone=${cleanStorePhone}&text=${formatWhatsappMessage()}`;
     window.open(url, '_blank', 'noreferrer,noopener');

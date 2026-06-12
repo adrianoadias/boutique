@@ -481,7 +481,9 @@ export default function App() {
 
             {step === 'INSTAGRAM_UNLOCK' && (
               <InstagramUnlock 
-                userName={user.name} 
+                user={user}
+                guess={guess}
+                matchConfig={matchConfig}
                 onUnlock={handleInstagramUnlock} 
               />
             )}
@@ -514,6 +516,9 @@ export default function App() {
             </div>
             <p className="text-[9px] text-stone-500 font-bold">
               © {new Date().getFullYear()} Boutique das Carnes Ltda. Todos os direitos reservados.
+            </p>
+            <p className="text-[8.5px] text-stone-400 font-semibold uppercase tracking-wider mt-0.5">
+              Desenvolvido por: <span className="font-extrabold text-stone-500">Rafes Marketing</span>
             </p>
             <button 
               type="button"

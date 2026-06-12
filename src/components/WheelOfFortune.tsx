@@ -196,53 +196,59 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
               <path
                 d="M 0,0 L 0,-100 A 100,100 0 0,1 86.6,-50 Z"
                 fill="url(#orange-gradient)"
-                stroke="#012169"
-                strokeWidth="2"
+                stroke="#ffffff"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
               />
               {/* SEGMENT 1: 10% OFF (60° to 120°) */}
               <path
                 d="M 0,0 L 86.6,-50 A 100,100 0 0,1 86.6,50 Z"
                 fill="url(#gold-gradient)"
-                stroke="#012169"
-                strokeWidth="2"
+                stroke="#ffffff"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
               />
               {/* SEGMENT 2: 15% OFF (120° to 180°) */}
               <path
                 d="M 0,0 L 86.6,50 A 100,100 0 0,1 0,100 Z"
                 fill="url(#red-gradient)"
-                stroke="#012169"
-                strokeWidth="2"
+                stroke="#ffffff"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
               />
               {/* SEGMENT 3: Entrega Grátis (180° to 240°) */}
               <path
                 d="M 0,0 L 0,100 A 100,100 0 0,1 -86.6,50 Z"
                 fill="url(#blue-gradient)"
-                stroke="#012169"
-                strokeWidth="2"
+                stroke="#ffffff"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
               />
               {/* SEGMENT 4: Presente Surpresa (240° to 300°) */}
               <path
                 d="M 0,0 L -86.6,50 A 100,100 0 0,1 -86.6,-50 Z"
                 fill="url(#green-gradient)"
-                stroke="#012169"
-                strokeWidth="2"
+                stroke="#ffffff"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
               />
               {/* SEGMENT 5: Try Again (300° to 360°) */}
               <path
                 d="M 0,0 L -86.6,-50 A 100,100 0 0,1 0,-100 Z"
                 fill="url(#gray-gradient)"
-                stroke="#012169"
-                strokeWidth="2"
+                stroke="#ffffff"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
               />
 
-              {/* Decorative slice labels rotated at segment centers: 30°, 90°, 150°, 210°, 270°, 330° */}
+              {/* Decorative slice labels rotated at segment centers: 300° (Segment 0), 0° (Segment 1), 60° (Segment 2), 120° (Segment 3), 180° (Segment 4), 240° (Segment 5) */}
               
               {/* Segment 0 text: Cerveja */}
-              <g transform="rotate(30)">
+              <g transform="rotate(300)">
                 <text
                   x="52"
                   y="4"
-                  className="fill-white font-black text-[8px] font-display uppercase tracking-wider text-center"
+                  className="fill-white font-extrabold text-[9px] font-sans uppercase tracking-wider text-center"
                   textAnchor="middle"
                   transform="rotate(90, 52, 0)"
                 >
@@ -251,11 +257,11 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
               </g>
 
               {/* Segment 1 text: 10% OFF */}
-              <g transform="rotate(90)">
+              <g transform="rotate(0)">
                 <text
                   x="52"
                   y="4"
-                  className="fill-brazil-blue font-black text-[8px] font-display uppercase tracking-wider text-center"
+                  className="fill-brazil-blue font-extrabold text-[9px] font-sans uppercase tracking-wider text-center"
                   textAnchor="middle"
                   transform="rotate(90, 52, 0)"
                 >
@@ -264,11 +270,11 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
               </g>
 
               {/* Segment 2 text: 15% OFF */}
-              <g transform="rotate(150)">
+              <g transform="rotate(60)">
                 <text
                   x="52"
                   y="4"
-                  className="fill-white font-black text-[8px] font-display uppercase tracking-wider text-center"
+                  className="fill-white font-extrabold text-[9px] font-sans uppercase tracking-wider text-center"
                   textAnchor="middle"
                   transform="rotate(90, 52, 0)"
                 >
@@ -277,11 +283,11 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
               </g>
 
               {/* Segment 3 text: Entrega */}
-              <g transform="rotate(210)">
+              <g transform="rotate(120)">
                 <text
                   x="52"
                   y="4"
-                  className="fill-white font-black text-[8px] font-display uppercase tracking-wider text-center"
+                  className="fill-white font-extrabold text-[9px] font-sans uppercase tracking-wider text-center"
                   textAnchor="middle"
                   transform="rotate(90, 52, 0)"
                 >
@@ -290,11 +296,11 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
               </g>
 
               {/* Segment 4 text: Brinde */}
-              <g transform="rotate(270)">
+              <g transform="rotate(180)">
                 <text
                   x="52"
                   y="4"
-                  className="fill-white font-black text-[7.5px] font-display uppercase tracking-wider text-center"
+                  className="fill-white font-extrabold text-[8.5px] font-sans uppercase tracking-wider text-center"
                   textAnchor="middle"
                   transform="rotate(90, 52, 0)"
                 >
@@ -303,11 +309,11 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
               </g>
 
               {/* Segment 5 text: Quase lá */}
-              <g transform="rotate(330)">
+              <g transform="rotate(240)">
                 <text
                   x="52"
                   y="4"
-                  className="fill-stone-300 font-black text-[7.5px] font-display uppercase tracking-wider text-center"
+                  className="fill-white font-extrabold text-[8.5px] font-sans uppercase tracking-wider text-center"
                   textAnchor="middle"
                   transform="rotate(90, 52, 0)"
                 >
