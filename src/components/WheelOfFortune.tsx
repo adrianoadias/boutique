@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Loader2, Zap, RotateCcw, AlertCircle } from 'lucide-react';
+import { Loader2, Zap, RotateCcw } from 'lucide-react';
 import { PRIZES } from '../data';
-import { Prize, PrizeId } from '../types';
+import { Prize } from '../types';
 
 interface WheelOfFortuneProps {
   onSpinComplete: (prize: Prize) => void;
@@ -29,7 +29,7 @@ function playTickSound() {
     osc.start();
     osc.stop(ctx.currentTime + 0.06);
   } catch (e) {
-    // Audio context not allowed or not supported yet (safe ignore)
+    // Safe ignore if auto-play constraint blocks audio
   }
 }
 
@@ -41,7 +41,6 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
 
   // References for animation
   const requestRef = useRef<number | null>(null);
-  const lastTickRef = useRef<number>(-1);
 
   // Clean-up animation on unmount
   useEffect(() => {
@@ -57,81 +56,76 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
     
     setIsSpinning(true);
     
-    // Slices:
-    // 0 -> Free Beer [Orange]
-    // 1 -> 10% OFF [Gold]
-    // 2 -> 15% OFF [Red]
-    // 3 -> Free Shipping [Blue]
-    // 4 -> Surprise Gift [Green]
-    // 5 -> Try Again [Gray]
-    const listCount = PRIZES.length;
-    
-    // Balanced premium marketing weights
+    // Balanced premium marketing weights matching index entries in data.ts
+    // 0 -> Free Beer
+    // 1 -> 10% OFF
+    // 2 -> 15% OFF
+    // 3 -> Free Shipping
+    // 4 -> Surprise Gift
+    // 5 -> Try Again
     const rand = Math.random() * 100;
-    let chosenIdx = 5; // Default: Try Again (10% chance)
+    let chosenIdx = 5; // Default Try Again
     
-    if (rand < 20) {
-      chosenIdx = 0; // Free Beer (20%)
-    } else if (rand < 45) {
+    if (rand < 22) {
+      chosenIdx = 0; // Free Beer (22%)
+    } else if (rand < 47) {
       chosenIdx = 1; // 10% OFF (25%)
-    } else if (rand < 60) {
+    } else if (rand < 62) {
       chosenIdx = 2; // 15% OFF (15%)
-    } else if (rand < 75) {
+    } else if (rand < 77) {
       chosenIdx = 3; // Free Shipping (15%)
-    } else if (rand < 90) {
+    } else if (rand < 92) {
       chosenIdx = 4; // Surprise Gift (15%)
     } else {
-      chosenIdx = 5; // Try Again (10%)
+      chosenIdx = 5; // Try Again (8%)
     }
 
     const prize = PRIZES[chosenIdx];
     setSelectedPrize(prize);
 
-    // Mathematics of stopping angle for 6 segments (60 degrees each)
-    // Segment 'idx' is visually centered at angle: idx * 60 + 30 degrees.
-    // To align this center with the TOP needle, we rotate the circle by:
-    // Target stop angle = 360 - (idx * 60 + 30)
-    const segmentAngleCenter = chosenIdx * 60 + 30;
-    const targetBaseStopAngle = (360 - segmentAngleCenter) % 360;
+    // Exact mathematical rotation formula
+    // Segment 'idx' center is located at (idx * 60 + 300) degrees in Cartesian space.
+    // To align this center with the static vertical TOP pointer needle, 
+    // the required clockwise rotation target is segment stop angle:
+    const targetBaseStopAngle = 330 - chosenIdx * 60;
 
-    // Spin multiple full loops first (e.g. 5 full spins = 1800 degrees) to give maximum tension and speed.
+    // Spin at least 7 complete loops (2520 degrees) to build speed and ultimate tension
     const baseRotation = rotationDegrees - (rotationDegrees % 360);
-    const finalStopDegrees = baseRotation + 360 * 6 + targetBaseStopAngle;
+    const finalStopDegrees = baseRotation + 360 * 7 + targetBaseStopAngle;
 
     setRotationDegrees(finalStopDegrees);
 
-    // Audio click ticks that slow down mimicking the visual speed
+    // Dynamic mechanical tick sound fx matching physical deceleration speeds
     let elapsed = 0;
-    let nextTickInterval = 35; // start fast
+    let nextTickInterval = 35; // initial high speed ticks
     
     const playDeceleratingTicks = () => {
-      // stop ticks near the end
-      if (elapsed > 5400) return;
+      if (elapsed > 5800) return; // cut ticks off when wheel nearly stops
       playTickSound();
       
       elapsed += nextTickInterval;
-      nextTickInterval = 35 + Math.pow(elapsed / 700, 3.2); // exponentially gets farther apart
+      nextTickInterval = 35 + Math.pow(elapsed / 680, 3.1); // exponential slowing spacing
       
       setTimeout(playDeceleratingTicks, nextTickInterval);
     };
     
     playDeceleratingTicks();
 
-    // Trigger complete state after transition (6000ms duration)
+    // Settle perfectly at exactly 6.5s (transition matches timeline)
     setTimeout(() => {
       setIsSpinning(false);
       setHasSpun(true);
       
-      // Notify step completion after a neat suspense pause
+      // Highlight the result and advance to show coupon
       setTimeout(() => {
         onSpinComplete(prize);
-      }, 1200);
-    }, 6000);
+      }, 1600);
+    }, 6500);
   };
 
   return (
     <div className="flex flex-col flex-1 px-4 py-4 pb-8 items-center justify-center bg-brazil-yellow/5">
-      {/* Visual divider */}
+      {/* Visual top design bar */}
       <div className="relative mb-5 bg-gradient-to-r from-transparent via-brazil-blue/20 to-transparent h-1 w-full" />
 
       {/* Step Tracker */}
@@ -140,7 +134,7 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
         <div className="flex items-center gap-1.5">
           <div className="w-10 h-2 rounded-full bg-brazil-green" />
           <div className="w-10 h-2 rounded-full bg-brazil-green" />
-          <div className="w-10 h-2 rounded-full bg-brazil-blue" />
+          <div className="w-10 h-2 rounded-full bg-brazil-blue animate-pulse" />
         </div>
       </div>
 
@@ -148,32 +142,37 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
         <h2 className="text-xl font-black uppercase text-brazil-blue tracking-tight font-display">
           ROLETA PREMIUM CHURRASCO 🎰
         </h2>
-        <p className="text-xs text-stone-600 font-semibold mt-1 max-w-xs mx-auto">
-          Toque no botão central <span className="font-extrabold text-bbq-red">GIRAR</span> para rodar a roleta da Boutique e sortear o seu prêmio instantâneo!
+        <p className="text-xs text-stone-600 font-semibold mt-1 max-w-sm mx-auto leading-relaxed">
+          Tudo validado! Agora é a hora da verdade. Toque no botão central <strong className="text-bbq-red font-black">GIRAR!</strong> para rodar a roleta da Boutique e garantir seu prêmio! 🥩🔥
         </p>
       </div>
 
       {/* THE ROULETTE STAGE CONTAINER */}
-      <div className="relative w-72 h-72 flex items-center justify-center my-4">
-        {/* Outer glowing frame rings of the roulette */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-brazil-yellow/40 via-brazil-green/20 to-brazil-blue/30 blur-2xl animate-pulse" />
+      <div className="relative w-80 h-80 flex items-center justify-center my-2 select-none">
+        {/* Soft magical glow underlayer */}
+        <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-amber-500/30 via-emerald-500/20 to-blue-500/20 blur-2xl animate-pulse" />
         
-        {/* Premium Gold Ribbed Border Container */}
-        <div className="absolute inset-0 rounded-full border-4 border-brazil-blue bg-white shadow-2xl flex items-center justify-center relative">
+        {/* Outer casing brass ring border */}
+        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-yellow-600 via-amber-400 to-yellow-700 shadow-2xl p-2.5 flex items-center justify-center relative">
           
-          {/* Glowing Little LEDs bulbs embedded around the outer rim */}
-          {[...Array(12)].map((_, i) => {
-            const angleDeg = i * 30;
+          {/* Inner dark carbon fiber backing layer */}
+          <div className="absolute inset-1.5 rounded-full bg-zinc-900 border-4 border-yellow-500/40" />
+
+          {/* Glowing Retro LED bulb beads around the metal frame */}
+          {[...Array(16)].map((_, i) => {
+            const angleDeg = i * (360 / 16);
             const style = {
-              transform: `rotate(${angleDeg}deg) translateY(-140px)`,
+              transform: `rotate(${angleDeg}deg) translateY(-145px)`,
             };
             return (
               <span
                 key={i}
-                className={`absolute w-1.5 h-1.5 rounded-full ${
+                className={`absolute w-2 h-2 rounded-full border border-white/50 shadow-md transition-colors duration-200 ${
                   isSpinning 
-                    ? i % 2 === 0 ? 'bg-brazil-yellow animate-ping' : 'bg-brazil-green'
-                    : 'bg-brazil-blue'
+                    ? i % 2 === Math.floor(Date.now() / 200) % 2 
+                      ? 'bg-yellow-400 shadow-[0_0_8px_#fa4]' 
+                      : 'bg-emerald-400 shadow-[0_0_5px_#2e4]'
+                    : 'bg-yellow-400 shadow-sm'
                 }`}
                 style={style}
               />
@@ -183,10 +182,11 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
           {/* SVG VECTOR ROULETTE WHEEL */}
           <svg
             id="roulette-svg-wheel"
-            className="w-[264px] h-[264px] rounded-full overflow-hidden"
+            className="w-[268px] h-[268px] rounded-full overflow-hidden select-none bg-zinc-800"
             style={{
               transform: `rotate(${rotationDegrees}deg)`,
-              transition: isSpinning ? 'transform 6s cubic-bezier(0.15, 0.85, 0.2, 1)' : 'none',
+              // Persistent transition to eliminate glitchy snap-backs or micro-stutters
+              transition: 'transform 6.5s cubic-bezier(0.18, 0.85, 0.22, 1)',
               willChange: 'transform',
             }}
             viewBox="0 0 200 200"
@@ -197,7 +197,7 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
                 d="M 0,0 L 0,-100 A 100,100 0 0,1 86.6,-50 Z"
                 fill="url(#orange-gradient)"
                 stroke="#ffffff"
-                strokeWidth="2.5"
+                strokeWidth="1.8"
                 strokeLinejoin="round"
               />
               {/* SEGMENT 1: 10% OFF (60° to 120°) */}
@@ -205,7 +205,7 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
                 d="M 0,0 L 86.6,-50 A 100,100 0 0,1 86.6,50 Z"
                 fill="url(#gold-gradient)"
                 stroke="#ffffff"
-                strokeWidth="2.5"
+                strokeWidth="1.8"
                 strokeLinejoin="round"
               />
               {/* SEGMENT 2: 15% OFF (120° to 180°) */}
@@ -213,7 +213,7 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
                 d="M 0,0 L 86.6,50 A 100,100 0 0,1 0,100 Z"
                 fill="url(#red-gradient)"
                 stroke="#ffffff"
-                strokeWidth="2.5"
+                strokeWidth="1.8"
                 strokeLinejoin="round"
               />
               {/* SEGMENT 3: Entrega Grátis (180° to 240°) */}
@@ -221,7 +221,7 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
                 d="M 0,0 L 0,100 A 100,100 0 0,1 -86.6,50 Z"
                 fill="url(#blue-gradient)"
                 stroke="#ffffff"
-                strokeWidth="2.5"
+                strokeWidth="1.8"
                 strokeLinejoin="round"
               />
               {/* SEGMENT 4: Presente Surpresa (240° to 300°) */}
@@ -229,160 +229,166 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
                 d="M 0,0 L -86.6,50 A 100,100 0 0,1 -86.6,-50 Z"
                 fill="url(#green-gradient)"
                 stroke="#ffffff"
-                strokeWidth="2.5"
+                strokeWidth="1.8"
                 strokeLinejoin="round"
               />
-              {/* SEGMENT 5: Try Again (300° to 360°) */}
+              {/* SEGMENT 5: Try Again / Re-Spin (300° to 360°) */}
               <path
                 d="M 0,0 L -86.6,-50 A 100,100 0 0,1 0,-100 Z"
                 fill="url(#gray-gradient)"
                 stroke="#ffffff"
-                strokeWidth="2.5"
+                strokeWidth="1.8"
                 strokeLinejoin="round"
               />
 
-              {/* Decorative slice labels rotated at segment centers: 300° (Segment 0), 0° (Segment 1), 60° (Segment 2), 120° (Segment 3), 180° (Segment 4), 240° (Segment 5) */}
+              {/* RADIAL TYPOGRAPHY WRITING (POLISHED OUTWARD ALIGNMENT) */}
               
-              {/* Segment 0 text: Cerveja */}
+              {/* Segment 0: Cerveja */}
               <g transform="rotate(300)">
                 <text
-                  x="52"
-                  y="4"
-                  className="fill-white font-extrabold text-[9px] font-sans uppercase tracking-wider text-center"
+                  x="56"
+                  y="0"
+                  className="fill-white font-black text-[9px] font-sans uppercase tracking-widest text-center"
                   textAnchor="middle"
-                  transform="rotate(90, 52, 0)"
+                  dominantBaseline="middle"
+                  transform="rotate(90, 56, 0)"
                 >
                   CERVEJA 🍺
                 </text>
               </g>
 
-              {/* Segment 1 text: 10% OFF */}
+              {/* Segment 1: 10% OFF */}
               <g transform="rotate(0)">
                 <text
-                  x="52"
-                  y="4"
-                  className="fill-brazil-blue font-extrabold text-[9px] font-sans uppercase tracking-wider text-center"
+                  x="56"
+                  y="0"
+                  className="fill-brazil-blue font-black text-[9px] font-sans uppercase tracking-widest text-center"
                   textAnchor="middle"
-                  transform="rotate(90, 52, 0)"
+                  dominantBaseline="middle"
+                  transform="rotate(90, 56, 0)"
                 >
                   10% OFF 🥩
                 </text>
               </g>
 
-              {/* Segment 2 text: 15% OFF */}
+              {/* Segment 2: 15% OFF */}
               <g transform="rotate(60)">
                 <text
-                  x="52"
-                  y="4"
-                  className="fill-white font-extrabold text-[9px] font-sans uppercase tracking-wider text-center"
+                  x="56"
+                  y="0"
+                  className="fill-white font-black text-[9px] font-sans uppercase tracking-widest text-center"
                   textAnchor="middle"
-                  transform="rotate(90, 52, 0)"
+                  dominantBaseline="middle"
+                  transform="rotate(90, 56, 0)"
                 >
                   15% OFF 🔥
                 </text>
               </g>
 
-              {/* Segment 3 text: Entrega */}
+              {/* Segment 3: Entrega */}
               <g transform="rotate(120)">
                 <text
-                  x="52"
-                  y="4"
-                  className="fill-white font-extrabold text-[9px] font-sans uppercase tracking-wider text-center"
+                  x="56"
+                  y="0"
+                  className="fill-white font-black text-[9px] font-sans uppercase tracking-widest text-center"
                   textAnchor="middle"
-                  transform="rotate(90, 52, 0)"
+                  dominantBaseline="middle"
+                  transform="rotate(90, 56, 0)"
                 >
                   ENTREGA 🛵
                 </text>
               </g>
 
-              {/* Segment 4 text: Brinde */}
+              {/* Segment 4: Brinde */}
               <g transform="rotate(180)">
                 <text
-                  x="52"
-                  y="4"
-                  className="fill-white font-extrabold text-[8.5px] font-sans uppercase tracking-wider text-center"
+                  x="56"
+                  y="0"
+                  className="fill-white font-black text-[8.5px] font-sans uppercase tracking-widest text-center"
                   textAnchor="middle"
-                  transform="rotate(90, 52, 0)"
+                  dominantBaseline="middle"
+                  transform="rotate(90, 56, 0)"
                 >
                   BRINDE 🎁
                 </text>
               </g>
 
-              {/* Segment 5 text: Quase lá */}
+              {/* Segment 5: Quase lá */}
               <g transform="rotate(240)">
                 <text
-                  x="52"
-                  y="4"
-                  className="fill-white font-extrabold text-[8.5px] font-sans uppercase tracking-wider text-center"
+                  x="56"
+                  y="0"
+                  className="fill-white font-black text-[8.5px] font-sans uppercase tracking-widest text-center"
                   textAnchor="middle"
-                  transform="rotate(90, 52, 0)"
+                  dominantBaseline="middle"
+                  transform="rotate(90, 56, 0)"
                 >
                   QUASE LÁ 😢
                 </text>
               </g>
             </g>
 
-            {/* Premium Gradients Definition inside the SVG view box */}
+            {/* Premium Vibrant Color Gradients Defs */}
             <defs>
               <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#fcde67" />
-                 <stop offset="50%" stopColor="#FFDC05" />
-                 <stop offset="100%" stopColor="#d29d00" />
+                 <stop offset="0%" stopColor="#FFF280" />
+                 <stop offset="50%" stopColor="#FCD34D" />
+                 <stop offset="100%" stopColor="#D97706" />
               </linearGradient>
               <linearGradient id="orange-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#ff7e40" />
-                <stop offset="100%" stopColor="#e24a00" />
+                <stop offset="0%" stopColor="#FB923C" />
+                <stop offset="100%" stopColor="#C2410C" />
               </linearGradient>
               <linearGradient id="red-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#ef4444" />
-                <stop offset="100%" stopColor="#9B1B1B" />
+                <stop offset="0%" stopColor="#F87171" />
+                <stop offset="100%" stopColor="#B91C1C" />
               </linearGradient>
               <linearGradient id="blue-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#012169" />
+                <stop offset="0%" stopColor="#60A5FA" />
+                <stop offset="100%" stopColor="#1D4ED8" />
               </linearGradient>
               <linearGradient id="green-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#1ebd5b" />
-                <stop offset="100%" stopColor="#009739" />
+                <stop offset="0%" stopColor="#34D399" />
+                <stop offset="100%" stopColor="#047857" />
               </linearGradient>
               <linearGradient id="gray-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#78716c" />
-                <stop offset="100%" stopColor="#292524" />
+                <stop offset="0%" stopColor="#A8A29E" />
+                <stop offset="100%" stopColor="#44403C" />
               </linearGradient>
             </defs>
           </svg>
 
-          {/* Golden Pointer needle indicator pin pointing at the very top */}
-          <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
-            {/* The physical arrow pointer */}
-            <div className="w-5 h-7 bg-brazil-yellow rounded-b-full shadow-lg border-2 border-brazil-blue pointer-events-none relative flex justify-center">
-              <div className="absolute top-1 w-2 h-2 rounded-full bg-white animate-pulse" />
+          {/* Absolute TOP Pin Needle Indicator */}
+          <div className="absolute top-[-15px] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center">
+            {/* Physical Metallic Golden Arrow Pointer Indicator */}
+            <div className="w-6 h-9 bg-gradient-to-b from-yellow-300 via-amber-400 to-yellow-600 rounded-b-xl shadow-2xl border-2 border-white pointer-events-none relative flex justify-center">
+              <div className="absolute top-1.5 w-1.5 h-1.5 rounded-full bg-white shadow animate-ping" />
             </div>
-            {/* Tiny screw top accent */}
-            <div className="w-3 h-3 rounded-full bg-brazil-blue border border-white mt-[-4px]" />
+            {/* Golden Core button cover */}
+            <div className="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white/70 shadow mt-[-6px]" />
           </div>
 
-          {/* Central Button: GIRAR */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+          {/* Central Spin Button: GIRAR */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
             <button
               id="btn-spin-wheel"
               type="button"
               disabled={isSpinning || hasSpun}
               onClick={startSpin}
-              className={`w-18 h-18 rounded-full flex flex-col items-center justify-center font-black text-xs font-display border-4 border-brazil-blue shadow-xl transition-all ${
+              className={`w-18 h-18 rounded-full flex flex-col items-center justify-center font-black text-xs font-display border-4 border-white shadow-2xl transition-all duration-150 relative ${
                 isSpinning 
-                  ? 'bg-stone-100 text-stone-400 cursor-not-allowed scale-95'
+                  ? 'bg-stone-200 text-stone-400 cursor-not-allowed scale-95 shadow-inner'
                   : hasSpun
-                    ? 'bg-stone-50 text-stone-300 scale-95'
-                    : 'bg-bbq-red hover:scale-105 active:scale-95 text-white animate-pulse cursor-pointer'
+                    ? 'bg-stone-100 text-stone-300 scale-95 shadow-inner'
+                    : 'bg-gradient-to-br from-red-500 via-red-650 to-red-800 hover:scale-105 active:scale-95 text-white animate-pulse cursor-pointer shadow-[0_0_15px_rgba(239,68,68,0.5)]'
               }`}
             >
               {isSpinning ? (
                 <Loader2 className="w-5 h-5 text-stone-400 animate-spin" />
               ) : (
                 <>
-                  <RotateCcw className="w-4 h-4 mb-0.5 animate-spin" style={{ animationDuration: '6s' }} />
-                  <span>GIRAR!</span>
+                  <RotateCcw className="w-4 h-4 mb-0.5" />
+                  <span>GIRAR</span>
                 </>
               )}
             </button>
@@ -391,20 +397,20 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
         </div>
       </div>
 
-      {/* Helper text display of prize during calculation */}
-      <div className="h-10 mt-2 flex items-center justify-center">
+      {/* Dynamic Sorteio Banner with state check */}
+      <div className="h-10 mt-3 flex items-center justify-center">
         {isSpinning ? (
-          <div className="flex items-center gap-2 text-stone-500 font-bold text-xs uppercase tracking-tight">
-            <div className="w-1.5 h-1.5 rounded-full bg-bbq-red animate-ping" />
+          <div className="flex items-center gap-2 text-stone-500 font-bold text-xs uppercase tracking-tight animate-pulse">
+            <div className="w-2 h-2 rounded-full bg-bbq-red animate-ping shrink-0" />
             <span>Sorteando carne nobre... Torça pelo prêmio máximo!</span>
           </div>
         ) : selectedPrize && hasSpun ? (
-          <div className="p-2.5 px-5 rounded-full bg-white border-2 border-brazil-green text-xs font-black text-brazil-blue animate-bounce font-display flex items-center gap-1.5 shadow-md font-sans">
+          <div className="p-2.5 px-6 rounded-full bg-white border-2 border-brazil-green text-xs font-black text-brazil-blue animate-bounce font-display flex items-center gap-2 shadow-lg font-sans">
             🎯 GANHOU: {selectedPrize.title}
           </div>
         ) : (
           <p className="text-[11px] text-stone-500 font-bold italic">
-            Clique no botão acima para rodar a roleta.
+            Toque em GIRAR para rodar a roleta da Boutique!
           </p>
         )}
       </div>
@@ -412,7 +418,7 @@ export default function WheelOfFortune({ onSpinComplete }: WheelOfFortuneProps) 
       {/* Rules Notice */}
       <div className="mt-4 p-4 bg-white rounded-2xl border-2 border-brazil-blue/10 flex items-start gap-2.5 max-w-sm w-full">
         <Zap className="w-4 h-4 text-brazil-green shrink-0 mt-0.5 fill-brazil-yellow" />
-        <p className="text-[11px] text-stone-600 font-bold leading-normal">
+        <p className="text-[11px] text-stone-605 font-bold leading-normal text-left">
           *Regulamento: Válido 1 sorteio por telefone cadastrado. O prêmio deve ser retirado diretamente na loja física apresentando o comprovante via WhatsApp.
         </p>
       </div>

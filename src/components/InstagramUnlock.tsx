@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, ShieldCheck, ArrowRight, Share2, AlertTriangle, Eye, Send, Award } from 'lucide-react';
+import { CheckCircle, ArrowRight, Share2, AlertTriangle, Eye, Send, Award, Instagram } from 'lucide-react';
 import { getLoadedMatches } from '../data';
 import { UserRegistration, MatchGuess, MatchConfig } from '../types';
 
@@ -11,6 +11,7 @@ interface InstagramUnlockProps {
 }
 
 export default function InstagramUnlock({ onUnlock, user, guess, matchConfig }: InstagramUnlockProps) {
+  const [hasFollowed, setHasFollowed] = useState(false);
   const [hasSent, setHasSent] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -49,19 +50,33 @@ export default function InstagramUnlock({ onUnlock, user, guess, matchConfig }: 
     return encodeURIComponent(text);
   };
 
+  const handleFollowInstagram = () => {
+    setErrorMsg('');
+    const instagramUrl = "https://www.instagram.com/boutiquedascarnes.bc?igsh=MWFyYnRsODFncXppOA==";
+    window.open(instagramUrl, '_blank', 'noreferrer,noopener');
+    setHasFollowed(true);
+  };
+
   const handleSendWhatsappAndUnlock = () => {
     setErrorMsg('');
     const rawPhone = localStorage.getItem('boutique_store_phone_number') || '554797633756';
     const cleanStorePhone = rawPhone.replace(/\D/g, '');
     const url = `https://api.whatsapp.com/send?phone=${cleanStorePhone}&text=${formatWhatsappMessage()}`;
     window.open(url, '_blank', 'noreferrer,noopener');
-    
     setHasSent(true);
   };
 
   const handleAdvance = () => {
+    if (!hasFollowed && !hasSent) {
+      setErrorMsg('Atenção: É obrigatório seguir a Boutique no Instagram e enviar seus palpites pelo WhatsApp para liberar a roleta!');
+      return;
+    }
+    if (!hasFollowed) {
+      setErrorMsg('Atenção: É obrigatório seguir a Boutique das Carnes no Instagram primeiro!');
+      return;
+    }
     if (!hasSent) {
-      setErrorMsg('Atenção: É obrigatório clicar no botão verde acima para enviar seus palpites e dados pelo WhatsApp para liberar a roleta!');
+      setErrorMsg('Atenção: É obrigatório enviar seus palpites e dados pelo WhatsApp para validar a inscrição!');
       return;
     }
     onUnlock();
@@ -90,90 +105,104 @@ export default function InstagramUnlock({ onUnlock, user, guess, matchConfig }: 
             🎉 CADASTRO EFETUADO COM SUCESSO! 🎉
           </span>
           <h2 className="text-lg font-black uppercase font-display tracking-tight leading-tight text-brazil-blue mt-3">
-            ÚLTIMA ETAPA ANTES DE GIRAR!
+            SÓ MAIS 2 PASSOS RÁPIDOS!
           </h2>
-          <p className="text-xs text-stone-600 font-semibold mt-2 leading-relaxed">
-            Olá, <strong className="text-emerald-700 font-extrabold">{user.name}</strong>! Seus palpites estão prontos. Agora você deve enviá-los no nosso WhatsApp para validar a inscrição e liberar a roleta! 🥩🇧🇷
+          <p className="text-xs text-stone-605 font-semibold mt-2 leading-relaxed">
+            Olá, <strong className="text-emerald-700 font-extrabold">{user.name}</strong>! Seus palpites estão prontos. Conclua as etapas abaixo para liberar a roleta e garantir seu prêmio! 🥩🇧🇷
           </p>
         </div>
 
-        {/* Visual Summary Card */}
-        <div className="relative w-full max-w-sm bg-white border-4 border-brazil-green rounded-[2rem] overflow-hidden p-6 shadow-2xl text-brazil-blue">
-          {/* Subtle decoration */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 blur-2xl rounded-full" />
+        {/* Visual Multi-step Tasks Verification Card */}
+        <div className="w-full max-w-sm bg-white border-4 border-brazil-green rounded-[2rem] overflow-hidden p-6 shadow-2xl text-brazil-blue flex flex-col gap-5">
           
-          <div className="flex items-center gap-3 relative z-10 text-left">
-            <div className="w-10 h-10 rounded-full bg-brazil-blue/10 flex items-center justify-center text-brazil-blue">
-              <Award className="w-5 h-5 text-brazil-blue" />
+          <div className="flex items-center gap-3 border-b-2 border-stone-105 pb-3">
+            <div className="w-8 h-8 rounded-full bg-brazil-blue/10 flex items-center justify-center text-brazil-blue">
+              <Award className="w-4.5 h-4.5 text-brazil-blue" />
             </div>
-            <div>
-              <h3 className="text-xs font-black uppercase font-display text-brazil-blue tracking-tight">RESUMO DE SEUS DADOS</h3>
-              <p className="text-[10px] text-stone-500 font-bold">Confira as informações que serão enviadas:</p>
+            <div className="text-left">
+              <h3 className="text-xs font-black uppercase font-display text-brazil-blue tracking-tight">ETAPAS OBRIGATÓRIAS</h3>
+              <p className="text-[10px] text-stone-500 font-extrabold uppercase">Para desbloqueio da roleta</p>
             </div>
           </div>
 
-          {/* Customer Details info block */}
-          <div className="mt-4 pt-3 border-t-2 border-stone-100 text-left text-xs gap-1.5 flex flex-col relative z-10">
-            <div>
-              <strong className="text-stone-400 text-[10px] uppercase font-black tracking-wider block">Seu Nome:</strong>
-              <span className="font-extrabold text-brazil-blue">{user.name}</span>
-            </div>
-            <div>
-              <strong className="text-stone-400 text-[10px] uppercase font-black tracking-wider block">Seu CPF:</strong>
-              <span className="font-bold text-stone-700 font-mono">{user.cpf}</span>
-            </div>
-            <div>
-              <strong className="text-stone-400 text-[10px] uppercase font-black tracking-wider block">Seu Celular:</strong>
-              <span className="font-bold text-stone-700 font-mono">{user.phone}</span>
-            </div>
-            
-            <div className="mt-2 p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
-              <strong className="text-stone-400 text-[9px] uppercase font-black tracking-wider block mb-1">Palpites Ativos:</strong>
-              <div className="flex flex-col gap-1 text-[11px] font-bold text-stone-700">
-                {guess.predictions && guess.predictions.length > 0 ? (
-                  guess.predictions.map((p) => {
-                    const matches = getLoadedMatches();
-                    const matchInfo = matches.find(m => m.id === p.matchId) || matchConfig;
-                    return (
-                      <div key={p.matchId} className="flex justify-between border-b border-dashed border-stone-200 pb-1 last:border-0 last:pb-0">
-                        <span className="text-stone-605">{matchInfo.team1Flag} {matchInfo.team1Name} vs {matchInfo.team2Name} {matchInfo.team2Flag}</span>
-                        <span className="text-brazil-blue font-black font-mono">{p.team1Score} x {p.team2Score}</span>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="flex justify-between">
-                    <span>{matchConfig.team1Flag} {matchConfig.team1Name} vs {matchConfig.team2Name} {matchConfig.team2Flag}</span>
-                    <span className="text-brazil-blue font-black font-mono">{guess.brazilScore} x {guess.haitiScore}</span>
-                  </div>
-                )}
+          {/* STEP 1: INSTAGRAM FOLLOW */}
+          <div className="flex flex-col text-left">
+            <div className="flex items-start gap-2.5">
+              <div className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[10px] font-black mt-0.5 ${
+                hasFollowed ? 'bg-emerald-500 text-white' : 'bg-stone-200 text-stone-600'
+              }`}>
+                {hasFollowed ? '✓' : '1'}
               </div>
-            </div>
-          </div>
-
-          {/* BIG MANDATORY WHATSAPP BUTTON ACTION */}
-          <div className="mt-5 relative z-10">
-            {hasSent ? (
-              <div className="flex flex-col items-center gap-2 p-3 bg-emerald-50 border-2 border-emerald-500 rounded-xl text-center">
-                <div className="flex items-center gap-1.5 justify-center">
-                  <CheckCircle className="w-5 h-5 text-emerald-600 fill-white" />
-                  <span className="text-xs font-black text-emerald-700">PALPITES ENVIADOS NO WHATSAPP! ✅</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-xs font-extrabold text-stone-800 uppercase tracking-tight">Seguir a Boutique no Instagram</h4>
+                  {hasFollowed && <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 rounded uppercase">Concluído</span>}
                 </div>
-                <p className="text-[9.5px] text-emerald-800 font-semibold">
-                  A roleta já está desbloqueada! Clique no botão vermelho abaixo para ganhar o seu prêmio.
+                <p className="text-[10.5px] text-stone-500 font-semibold leading-relaxed mt-0.5">
+                  Seguir o perfil <span className="text-pink-600 font-bold">@boutiquedascarnes.bc</span> para conferir os resultados e premiações.
                 </p>
               </div>
-            ) : (
-              <button
-                type="button"
-                id="btn-send-whatsapp-unlock"
-                onClick={handleSendWhatsappAndUnlock}
-                className="w-full bg-[#25D366] hover:bg-[#20ba5a] hover:scale-[1.02] active:scale-95 text-white py-3.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer shadow-md shadow-emerald-600/20 border-b-4 border-emerald-850 relative overflow-hidden animate-pulse"
-              >
-                <Share2 className="w-4.5 h-4.5" />
-                1º ENVIAR PARA O WHATSAPP 🟢
-              </button>
-            )}
+            </div>
+
+            <div className="mt-2.5 pl-7">
+              {hasFollowed ? (
+                <div className="flex items-center gap-1.5 py-1 px-3 bg-emerald-55 border border-emerald-300 rounded-lg text-emerald-800 text-[10px] font-bold w-fit">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  Sensacional! Você já está seguindo.
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleFollowInstagram}
+                  className="w-full bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 hover:scale-[1.02] active:scale-95 text-white py-2 px-3 rounded-lg font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm relative overflow-hidden"
+                >
+                  <Instagram className="w-4 h-4 text-white shrink-0" />
+                  SEGUIR NO INSTAGRAM 📸
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Separator line */}
+          <div className="border-t border-dashed border-stone-200" />
+
+          {/* STEP 2: WHATSAPP SHARING */}
+          <div className="flex flex-col text-left">
+            <div className="flex items-start gap-2.5">
+              <div className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[10px] font-black mt-0.5 ${
+                hasSent ? 'bg-emerald-500 text-white' : 'bg-stone-200 text-stone-600'
+              }`}>
+                {hasSent ? '✓' : '2'}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-xs font-extrabold text-stone-800 uppercase tracking-tight">Enviar Palpites no WhatsApp</h4>
+                  {hasSent && <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 rounded uppercase">Registrado</span>}
+                </div>
+                <p className="text-[10.5px] text-stone-500 font-semibold leading-relaxed mt-0.5">
+                  Clique para enviar seus palpites e dados. Isso sincroniza seu telefone e libera o giro.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-2.5 pl-7">
+              {hasSent ? (
+                <div className="flex items-center gap-1.5 py-1 px-3 bg-emerald-55 border border-emerald-300 rounded-lg text-emerald-800 text-[10px] font-bold w-fit">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  Perfeito! Palpites gravados com sucesso.
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  id="btn-send-whatsapp-unlock"
+                  onClick={handleSendWhatsappAndUnlock}
+                  className="w-full bg-[#25D366] hover:bg-[#20ba5a] hover:scale-[1.02] active:scale-95 text-white py-2 px-3 rounded-lg font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
+                >
+                  <Share2 className="w-4 h-4 text-white shrink-0" />
+                  ENVIAR NO WHATSAPP 🟢
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -191,13 +220,13 @@ export default function InstagramUnlock({ onUnlock, user, guess, matchConfig }: 
             type="button"
             id="btn-advance-rolette"
             onClick={handleAdvance}
-            className={`w-full py-4 rounded-2xl font-black tracking-wide font-display flex items-center justify-center gap-2 text-sm uppercase transition duration-150 ${
-              hasSent
-                ? 'bg-bbq-red text-white hover:bg-bbq-red/90 hover:scale-[1.02] active:scale-95 cursor-pointer border-b-4 border-red-950 shadow-xl'
+            className={`w-full py-4 rounded-2xl font-black tracking-wide font-display flex items-center justify-center gap-2 text-sm uppercase transition duration-155 ${
+              hasFollowed && hasSent
+                ? 'bg-bbq-red text-white hover:bg-bbq-red/90 hover:scale-[1.02] active:scale-95 cursor-pointer border-b-4 border-red-950 shadow-xl animate-pulse'
                 : 'bg-stone-200 text-stone-400 cursor-not-allowed border-b-4 border-stone-300'
             }`}
           >
-            2º LIBERAR E GIRAR A ROLETA 🎰
+            LIBERAR E GIRAR A ROLETA 🎰
             <ArrowRight className="w-5 h-5 stroke-[3]" />
           </button>
         </div>
